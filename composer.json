@@ -1,0 +1,34 @@
+{
+	"name":              "dreamfactory/console-tools",
+	"description":       "A library of helper classes for working with the Symfony2 Console component.",
+	"homepage":          "https://www.dreamfactory.com/",
+	"keywords":          ["utility", "console", "symfony2", "dreamfactory"],
+	"license":           ["Apache-2.0"],
+	"authors":           [
+		{
+			"name":  "Jerry Ablan",
+			"email": "jerryablan@dreamfactory.com"
+		}
+	],
+	"minimum-stability": "dev",
+	"require":           {
+		"php":                      "~5.3",
+		"kisma/kisma":              "~0.2",
+		"illuminate/database":      "~4.2",
+		"symfony/console":          "~2.4",
+		"symfony/framework-bundle": "~2.4"
+	},
+	"require-dev":       {
+		"phpunit/phpunit": "~3.7"
+	},
+	"autoload":          {
+		"psr-4": {
+			"DreamFactory\\Library\\Console\\": "src/"
+		}
+	},
+	"extra":             {
+		"branch-alias": {
+			"dev-develop": "0.1.x-dev"
+		}
+	}
+}
