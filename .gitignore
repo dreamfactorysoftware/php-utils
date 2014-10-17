@@ -1,0 +1,9 @@
+log
+vendor
+.idea
+tests/config/keys.php
+tests/storage
+tests/log
+tests/*.log
+build
+docs
