@@ -1,31 +1,31 @@
 {
-    "name":              "dreamfactory/php-utils",
-    "description":       "A library of helper classes for PHP",
-    "homepage":          "https://www.dreamfactory.com/",
-    "keywords":          ["utility", "console", "dreamfactory"],
-    "license":           ["Apache-2.0"],
-    "authors":           [
-                             {
-                                 "name":  "Jerry Ablan",
-                                 "email": "jerryablan@dreamfactory.com"
-                             }
-                         ],
-    "minimum-stability": "dev",
-    "require":           {
-                             "php":         "~5.3",
-                             "kisma/kisma": "~0.2"
-                         },
-    "require-dev":       {
-                             "phpunit/phpunit": "~3.7"
-                         },
-    "autoload":          {
-                             "psr-4": {
-                                          "DreamFactory\\Library\\Utility\\": "src/"
-                                      }
-                         },
-    "extra":             {
-                             "branch-alias": {
-                                                 "dev-develop": "1.0.x-dev"
-                                             }
-                         }
+    "name": "dreamfactory/php-utils",
+    "description": "A library of helper classes for PHP",
+    "homepage": "https://www.dreamfactory.com/",
+    "keywords": ["utility", "console", "dreamfactory"],
+    "license": ["Apache-2.0"],
+    "authors": [
+        {
+            "name": "Jerry Ablan",
+            "email": "jerryablan@dreamfactory.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "~5.3",
+        "kisma/kisma": "~0.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "DreamFactory\\Library\\Utility\\": "src/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-develop": "1.0.x-dev"
+        }
+    }
 }
