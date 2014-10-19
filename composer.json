@@ -13,7 +13,7 @@
     "minimum-stability": "stable",
     "require": {
         "php": "~5.3",
-        "kisma/kisma": "~0.2"
+        "kisma/kisma": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "*"
