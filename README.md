@@ -1,4 +1,4 @@
-## php-utils v1.0.0
+## php-utils v1.0.1
 
 This repository contains some PHP utility classes that are used by various DreamFactory packages.
 
