@@ -1,11 +1,42 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
+use Kisma\Core\Exceptions\FileSystemException;
+
 /**
  * Contains helpers that discover information about the current runtime environment
  */
 class Environment
 {
+    //******************************************************************************
+    //* Constants
+    //******************************************************************************
+
+    /**
+     * @type string
+     */
+    const ROOT_MARKER = '/.dreamfactory.php';
+    /**
+     * @type string
+     */
+    const FABRIC_MARKER = '/var/www/.fabric_hosted';
+    /**
+     * @type string
+     */
+    const MAINTENANCE_MARKER = '/var/www/.fabric_maintenance';
+    /**
+     * @type string
+     */
+    const PRIVATE_PATH = '/storage/.private';
+    /**
+     * @type string
+     */
+    const AUTOLOAD_PATH = '/vendor/autoload.php';
+
+    //******************************************************************************
+    //* Methods
+    //******************************************************************************
+
     /**
      * Try a variety of cross platform methods to determine the current user
      *
@@ -103,10 +134,53 @@ class Environment
             $algorithm,
             PHP_SAPI .
             '_' .
-            ( isset( $_SERVER, $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : $_hostname ) .
+            IfSet::get( $_SERVER, 'REMOTE_ADDR', $_hostname ) .
             '_' .
             $_hostname .
             ( $entropy ? '_' . $entropy : null )
         );
     }
+
+    /**
+     * Locates the installed DSP's base directory
+     *
+     * @param string $startPath
+     *
+     * @throws FileSystemException
+     * @return string|bool The absolute path to the platform installation. False if not found
+     */
+    public static function locatePlatformBasePath( $startPath = __DIR__ )
+    {
+        //  Start path given or this file's directory
+        $_path = $startPath ?: __DIR__;
+
+        while ( true )
+        {
+            $_path = rtrim( $_path, ' /' );
+
+            //  Vendor and autoload?
+            if ( file_exists( $_path . static::AUTOLOAD_PATH ) )
+            {
+                break;
+            }
+
+            //  Installation root?
+            if ( file_exists( $_path . static::ROOT_MARKER ) && is_dir( $_path . static::PRIVATE_PATH ) )
+            {
+                break;
+            }
+
+            //  Too low, go up a level
+            $_path = dirname( $_path );
+
+            //	If we get to the root, ain't no DSP...
+            if ( '/' == $_path || empty( $_path ) )
+            {
+                return false;
+            }
+        }
+
+        return $_path;
+    }
+
 }
