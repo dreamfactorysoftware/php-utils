@@ -8,6 +8,10 @@ use Kisma\Core\Exceptions\FileSystemException;
  */
 class Environment
 {
+    //******************************************************************************
+    //* Constants
+    //******************************************************************************
+
     /**
      * @type string
      */
@@ -24,6 +28,14 @@ class Environment
      * @type string
      */
     const PRIVATE_PATH = '/storage/.private';
+    /**
+     * @type string
+     */
+    const AUTOLOAD_PATH = '/vendor/autoload.php';
+
+    //******************************************************************************
+    //* Methods
+    //******************************************************************************
 
     /**
      * Try a variety of cross platform methods to determine the current user
@@ -122,7 +134,7 @@ class Environment
             $algorithm,
             PHP_SAPI .
             '_' .
-            ( isset( $_SERVER, $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : $_hostname ) .
+            IfSet::get( $_SERVER, 'REMOTE_ADDR', $_hostname ) .
             '_' .
             $_hostname .
             ( $entropy ? '_' . $entropy : null )
@@ -146,6 +158,13 @@ class Environment
         {
             $_path = rtrim( $_path, ' /' );
 
+            //  Vendor and autoload?
+            if ( file_exists( $_path . static::AUTOLOAD_PATH ) )
+            {
+                break;
+            }
+
+            //  Installation root?
             if ( file_exists( $_path . static::ROOT_MARKER ) && is_dir( $_path . static::PRIVATE_PATH ) )
             {
                 break;

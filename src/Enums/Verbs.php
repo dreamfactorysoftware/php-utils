@@ -56,5 +56,4 @@ class Verbs extends SeedEnum
      * @type string
      */
     const CONNECT = 'CONNECT';
-
 }
