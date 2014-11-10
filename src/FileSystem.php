@@ -29,7 +29,7 @@ class FileSystem
 
         foreach ( $_parts as $_part )
         {
-            $_path .= DIRECTORY_SEPARATOR . trim( $_part, DIRECTORY_SEPARATOR . ' ' );
+            !empty( $_part ) && $_path .= DIRECTORY_SEPARATOR . trim( $_part, DIRECTORY_SEPARATOR . ' ' );
         }
 
         if ( !$createMissing )
