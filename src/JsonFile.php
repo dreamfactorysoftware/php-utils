@@ -175,11 +175,14 @@ class JsonFile
         $data = static::encode( $data, $options );
         $_retries = static::STORAGE_OPERATION_RETRY_COUNT;
 
+        $_fileName = basename( $file );
+        $_fileCopy = dirname( $file ) . DIRECTORY_SEPARATOR . $_fileName . '.' . date( 'YmdHis' );
+
         if ( static::$_makeBackups && file_exists( $file ) )
         {
-            if ( false === @copy( $file, str_ireplace( array('{file}', '{date}'), array($file, date( 'YmdHis' )), $file ) ) )
+            if ( false === @copy( $file, $_fileCopy ) )
             {
-                Log::notice( 'Could not make copy of existing file: ' . $file );
+                Log::notice( 'Could not make copy of existing file to "' . $_fileCopy . '"' );
             }
         }
 
