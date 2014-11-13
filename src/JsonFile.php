@@ -1,8 +1,8 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use DreamFactory\Library\Utility\Exception\FileException;
-use DreamFactory\Library\Utility\Exception\FileSystemException;
+use DreamFactory\Library\Utility\Exceptions\FileException;
+use DreamFactory\Library\Utility\Exceptions\FileSystemException;
 use Kisma\Core\Utility\Log;
 
 /**
