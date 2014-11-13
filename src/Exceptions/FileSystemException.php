@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Library\Utility\Exception;
+namespace DreamFactory\Library\Utility\Exceptions;
 
 /**
  * Generic file system exception
