@@ -55,7 +55,7 @@ class JsonFile
     /**
      * @type bool If true, a copy of files to be overwritten will be made
      */
-    protected static $_makeBackups = true;
+    protected static $_makeBackups = false;
 
     //******************************************************************************
     //* Methods
@@ -174,9 +174,7 @@ class JsonFile
     {
         $data = static::encode( $data, $options );
         $_retries = static::STORAGE_OPERATION_RETRY_COUNT;
-
-        $_fileName = basename( $file );
-        $_fileCopy = dirname( $file ) . DIRECTORY_SEPARATOR . $_fileName . '.' . date( 'YmdHis' );
+        $_fileCopy = str_replace( array('{file}', '{date}'), array($file, date( 'YmdHis' )), static::BACKUP_FORMAT );
 
         if ( static::$_makeBackups && file_exists( $file ) )
         {
