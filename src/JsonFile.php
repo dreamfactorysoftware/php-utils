@@ -164,16 +164,17 @@ class JsonFile
     /**
      * Encodes and writes contents to file
      *
-     * @param string $file The absolute path to the file to encode
-     * @param mixed  $data
-     * @param int    $options
+     * @param string $file       The absolute path to the destination file
+     * @param mixed  $data       The data to encode and write
+     * @param int    $options    The JSON encoding options
+     * @param int    $retries    The number of times to retry writing the file
+     * @param int    $retryDelay The number of microseconds (not milliseconds)
      *
      * @throws \Exception
      */
-    public static function encodeFile( $file, $data, $options = self::JSON_UNESCAPED_SLASHES )
+    public static function encodeFile( $file, $data, $options = self::JSON_UNESCAPED_SLASHES, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY )
     {
         $data = static::encode( $data, $options );
-        $_retries = static::STORAGE_OPERATION_RETRY_COUNT;
         $_fileCopy = str_replace( array('{file}', '{date}'), array($file, date( 'YmdHis' )), static::BACKUP_FORMAT );
 
         if ( static::$_makeBackups && file_exists( $file ) )
@@ -184,7 +185,7 @@ class JsonFile
             }
         }
 
-        while ( $_retries-- )
+        while ( $retries-- )
         {
             try
             {
@@ -195,11 +196,11 @@ class JsonFile
 
                 break;
             }
-            catch ( \Exception $_ex )
+            catch ( FileException $_ex )
             {
-                if ( $_retries )
+                if ( $retries )
                 {
-                    usleep( static::STORAGE_OPERATION_RETRY_DELAY );
+                    usleep( $retryDelay );
                     continue;
                 }
 

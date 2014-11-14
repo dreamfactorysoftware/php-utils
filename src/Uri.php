@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use Kisma\Core\Utility\Scalar;
-
 class Uri
 {
     /**

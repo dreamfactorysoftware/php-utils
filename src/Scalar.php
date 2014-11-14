@@ -75,9 +75,7 @@ class Scalar
      */
     public static function in_array( $needle, $haystack )
     {
-        array_shift( $_haystack = func_get_args() );
-
-        return in_array( $needle, $_haystack );
+        return static::in( func_get_args() );
     }
 
     /**

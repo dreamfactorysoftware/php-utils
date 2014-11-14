@@ -39,7 +39,7 @@ class Inflector
         {
             foreach ( $_parts as $_index => $_part )
             {
-                $_parts[$_index] = Inflector::decamelize( $_part );
+                $_parts[$_index] = static::decamelize( $_part );
             }
         }
 
