@@ -5,7 +5,7 @@ namespace DreamFactory\Library\Utility\Enums;
  * GlobFlags
  * Ya know, for globbing...
  */
-class GlobFlags
+class GlobFlags extends FactoryEnum
 {
     //*************************************************************************
     //* Constants

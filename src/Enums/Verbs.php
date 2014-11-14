@@ -1,12 +1,10 @@
 <?php
 namespace DreamFactory\Library\Utility\Enums;
 
-use Kisma\Core\Enums\SeedEnum;
-
 /**
  * All the HTTP verbs in a single place!
  */
-class Verbs extends SeedEnum
+class Verbs extends FactoryEnum
 {
     //******************************************************************************
     //* Constants

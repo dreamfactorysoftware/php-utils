@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use Kisma\Core\Exceptions\FileSystemException;
-
 /**
  * Contains helpers that discover information about the current runtime environment
  */
@@ -146,7 +144,6 @@ class Environment
      *
      * @param string $startPath
      *
-     * @throws FileSystemException
      * @return string|bool The absolute path to the platform installation. False if not found
      */
     public static function locatePlatformBasePath( $startPath = __DIR__ )
