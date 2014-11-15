@@ -12,12 +12,32 @@ class IfSet
      */
     public static function get( array $target, $key, $defaultValue = null )
     {
-        if ( array_key_exists( $key, $target ) )
-        {
-            return $target[$key];
-        }
+        return
+            is_array( $target )
+                ? ( array_key_exists( $key, $target ) ? $target[$key] : $defaultValue )
+                : $defaultValue;
+    }
 
-        return $defaultValue;
+    /**
+     * @param array|\ArrayObject $target Target to check
+     * @param string             $key    Key to check
+     *
+     * @return bool
+     */
+    public static function has( array $target, $key )
+    {
+        return
+            is_array( $target ) && array_key_exists( $key, $target );
+    }
+
+    /**
+     * @param array|\ArrayObject $target Target to grab $key from
+     * @param string             $key    Index into target to retrieve
+     * @param mixed              $value  The value to set
+     */
+    public static function set( array $target, $key, $value = null )
+    {
+        is_array( $target ) && $target[$key] = $value;
     }
 
     /**
@@ -29,12 +49,7 @@ class IfSet
      */
     public static function getBool( array $target, $key, $defaultValue = false )
     {
-        if ( array_key_exists( $key, $target ) )
-        {
-            return static::boolval( $target[$key] );
-        }
-
-        return static::boolval( $defaultValue );
+        return static::boolval( static::get( $target, $key, $defaultValue ) );
     }
 
     /**

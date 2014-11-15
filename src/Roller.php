@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
+use DreamFactory\Library\Utility\Exceptions\FileException;
+
 /**
  * Simple file roller
  */
@@ -46,11 +48,34 @@ class Roller
         $this->_path = dirname( $fileName );
     }
 
+    /**
+     * The file roller
+     */
     public function rollFiles()
     {
-        for ( $_i = $this->_keepCount; $_i >= 0; $_i-- )
+        $_baseFile = $this->_path . DIRECTORY_SEPARATOR . $this->_filename;
+
+        //  Roll the files 1-n
+        for ( $_i = $this->_keepCount - 1; $_i > 0; $_i-- )
         {
-            )
+            $_oldName = $_baseFile . '.' . ( $_i - 1 );
+            $_newName = $_baseFile . '.' . $_i;
+
+            //  If this is the last one, remove it...
+            if ( file_exists( $_oldName ) )
+            {
+                if ( false === @rename( $_oldName, $_newName ) )
+                {
+                    throw new FileException( 'Unable to rename file "' . $_oldName . '" to "' . $_newName . '"' );
+                }
+            }
         }
+
+        //  Roll the base file...
+        if ( false === @rename( $_baseFile, $_baseFile . '.1' ) )
+        {
+            throw new FileException( 'Unable to rename file "' . $_baseFile . '" to "' . $_baseFile . '.1"' );
+        }
+
     }
 }
