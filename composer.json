@@ -12,7 +12,8 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "kisma/kisma": "*"
+        "kisma/kisma": "*",
+        "symfony/dependency-injection": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "*"
