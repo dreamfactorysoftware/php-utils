@@ -1,11 +1,11 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
+use Kisma\Core\Components\Flexistore;
 use Kisma\Core\Components\PaddedLineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Exception\ParameterNotFoundException;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -16,6 +16,15 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 class AppInstance extends ContainerBuilder
 {
     //******************************************************************************
+    //* Constants
+    //******************************************************************************
+
+    /**
+     * @type string
+     */
+    const DEFAULT_NAMESPACE = 'dreamfactory';
+
+    //******************************************************************************
     //* Methods
     //******************************************************************************
 
@@ -24,70 +33,42 @@ class AppInstance extends ContainerBuilder
      */
     public function __construct( ParameterBagInterface $parameterBag = null )
     {
-        $_parameterBag = new ParameterBag(
-            array_merge(
-                array(
-                    'app.cache_namespace'          => 'dreamfactory',
-                    'app.cache_ttl'                => 300,
-                    'app.default_document_root'    => DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'www' . DIRECTORY_SEPARATOR . 'launchpad',
-                    'app.force_config_cache'       => false,
-                    'app.enable_config_cache'      => true,
-                    'app.use_framework_autoloader' => true,
-                    'app.memcache.config_file'     => DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'memcached.config.php',
-                ),
-                $parameterBag->all()
-            )
-        );
-
-        parent::__construct( $_parameterBag );
+        parent::__construct( $this->_initializeDefaults( $parameterBag ) );
 
         $this->configure();
     }
 
-    //********************************************************************************
-    //* Members
-    //********************************************************************************
+    /**
+     * Initialize the instance based on parameter settings
+     */
+    public function configure()
+    {
+        try
+        {
+            if ( true === $this->getParameter( 'app.debug', static::NULL_ON_INVALID_REFERENCE ) )
+            {
+                ini_set( 'display_errors', true );
+                defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
+            }
+        }
+        catch ( ParameterNotFoundException $_ex )
+        {
+            //  Ignored
+        }
 
-    /**
-     * @var \CHttpRequest Cache the current request
-     */
-    protected static $_thisRequest = null;
-    /**
-     * @var \CClientScript Cache the client script object for speed
-     */
-    protected static $_clientScript = null;
-    /**
-     * @var \CWebUser Cache the user object for speed
-     */
-    protected static $_thisUser = null;
-    /**
-     * @var \CController Cache the current controller for speed
-     */
-    protected static $_thisController = null;
-    /**
-     * @var \CAttributeCollection Cache the application parameters for speed
-     */
-    protected static $_appParameters = null;
-    /**
-     * @var string semi-unique run key
-     */
-    protected static $_appRunId = null;
-    /**
-     * @var \CCache|\Kisma\Core\Components\Flexistore the app's store
-     */
-    protected static $_appStore = null;
-    /**
-     * @type string
-     */
-    protected static $_basePath = null;
-    /**
-     * @type bool If true, cache key formation is logged.
-     */
-    protected static $_logCacheKeys = false;
-
-    //********************************************************************************
-    //* Public Methods
-    //********************************************************************************
+        try
+        {
+            //  php-error utility
+            if ( true === $this->get( 'app.debug.use_php_error', static::NULL_ON_INVALID_REFERENCE ) && function_exists( 'reportErrors' ) )
+            {
+                reportErrors();
+            }
+        }
+        catch ( ParameterNotFoundException $_ex )
+        {
+            //  Ignored
+        }
+    }
 
     /**
      * Bootstraps the instance with default settings
@@ -98,34 +79,13 @@ class AppInstance extends ContainerBuilder
      */
     public function run( $documentRoot )
     {
-        $this->setParameter( 'app.host_name', $_hostname = $this->_determineHostName() );
-        $this->setParameter( 'app.mode', $_appMode = static::cli() ? 'console' : 'web' );
-        $this->setParameter( 'app.base_path', $_basePath = dirname( $documentRoot ) );
-        $this->setParameter( 'app.log_path', $_basePath . DIRECTORY_SEPARATOR . 'log' );
-        $this->setParameter( 'app.base_path', $_basePath = dirname( $documentRoot ) );
-        $this->setParameter( 'app.config_path', $_configPath = $_basePath . DIRECTORY_SEPARATOR . 'config' );
-        $this->setParameter( 'app.storage_path', $_storagePath = $_basePath . DIRECTORY_SEPARATOR . 'storage' );
-        $this->setParameter( 'app.private_path', $_storagePath . DIRECTORY_SEPARATOR . '.private' );
-        $this->setParameter( 'app.config_file', $_configFile = $_configPath . DIRECTORY_SEPARATOR . $_appMode . '.php' );
-        $this->setParameter( 'app.run_id', $_runId = static::_setAppRunId( $_hostname ) );
-
-        if ( null === ( $_logFile = $this->getParameter( 'app.log_file', static::NULL_ON_INVALID_REFERENCE ) ) )
-        {
-            $this->setParameter( 'app.log_file', $_logFile = $_appMode . '.' . $_hostname . '.log' );
-        }
-
-        if ( null === $this->get( 'logger', static::NULL_ON_INVALID_REFERENCE ) )
-        {
-            $_handler = new StreamHandler( $_logFile );
-            $_handler->setFormatter( new PaddedLineFormatter( null, null, true, true ) );
-            $this->set( 'logger', $_logger = new Logger( 'app', array($_handler) ) );
-        }
+        $this->_initializeDefaults( $documentRoot );
 
         //	Load constants...
-        static::includeIfExists( $_configPath . '/constants.config.php', true, false );
+        static::includeIfExists( $this->getParameter( 'app.config_path' ) . DIRECTORY_SEPARATOR . 'constants.config.php', true, false );
 
         //  Initialize the app store
-        static::_initAppStore( $_basePath );
+        static::_createStore( $_basePath );
 
         //	Create an alias for our configuration directory
         static::alias( 'application.config', $_configPath );
@@ -191,38 +151,6 @@ class AppInstance extends ContainerBuilder
 
         //	Just return the app
         return $_app;
-    }
-
-    /**
-     * Initialize the instance based on parameter settings
-     */
-    public function configure()
-    {
-        try
-        {
-            if ( true === $this->getParameter( 'app.debug', static::NULL_ON_INVALID_REFERENCE ) )
-            {
-                ini_set( 'display_errors', true );
-                defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-            }
-        }
-        catch ( ParameterNotFoundException $_ex )
-        {
-            //  Ignored
-        }
-
-        try
-        {
-            //  php-error utility
-            if ( true === $this->get( 'app.debug.use_php_error', static::NULL_ON_INVALID_REFERENCE ) && function_exists( 'reportErrors' ) )
-            {
-                reportErrors();
-            }
-        }
-        catch ( ParameterNotFoundException $_ex )
-        {
-            //  Ignored
-        }
     }
 
     /**
@@ -1280,72 +1208,6 @@ class AppInstance extends ContainerBuilder
     }
 
     /**
-     * @param string $basePath
-     *
-     * @return Flexistore|\CFileCache|\CMemCache
-     */
-    protected static function _initAppStore( $basePath )
-    {
-        if ( null !== static::$_appStore )
-        {
-            return static::$_appStore;
-        }
-
-        $_memcache = static::includeIfExists( $basePath . static::MEMCACHE_CONFIG_PATH, true );
-
-        if ( !empty( $_memcache ) )
-        {
-            try
-            {
-                try
-                {
-                    $_cache = new \CMemCache();
-                    $_cache->setServers( $_memcache );
-
-                    return static::$_appStore = $_cache;
-                }
-                catch ( \Exception $_ex )
-                {
-                    //  Bad config? Try flex...
-                    return static::$_appStore = Flexistore::createMemcachedStore( $_memcache );
-                }
-            }
-            catch ( \RuntimeException $_ex )
-            {
-                //  No memcache :(
-            }
-        }
-
-        $_cachePath =
-            static::hostedInstance()
-                ? sys_get_temp_dir() . DIRECTORY_SEPARATOR . '.dreamfactory' . DIRECTORY_SEPARATOR . '.cache'
-                :
-                $basePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.private' . DIRECTORY_SEPARATOR . '.cache';
-
-        if ( !is_dir( $_cachePath ) && false === mkdir( $_cachePath, 0777, true ) )
-        {
-            throw new \RuntimeException( 'Unable to locate a suitable pre-flight cache path.' );
-        }
-
-        //  Make a file cache...
-        try
-        {
-            $_cache = new \CFileCache();
-            $_cache->hashKey = false;
-            $_cache->cachePath = $_cachePath;
-
-            return static::$_appStore = $_cache;
-        }
-        catch ( \Exception $_ex )
-        {
-            //  Bogus...
-        }
-
-        //  Try a flexistore if all else fails
-        return static::$_appStore = Flexistore::createFileStore( $_cachePath, null, static::DEFAULT_NAMESPACE );
-    }
-
-    /**
      * @param string $key
      * @param mixed  $value
      * @param int    $ttl
@@ -1490,10 +1352,135 @@ class AppInstance extends ContainerBuilder
         return static::_initAppStore( static::$_basePath );
     }
 
-    public function get( $id, $invalidBehavior = ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE )
+    /**
+     * Initialize the defaults for this application
+     *
+     * @param string $documentRoot
+     * @param array $parameters
+     */
+    protected function _initializeDefaults( $documentRoot, $parameters = array() )
     {
-        return parent::get( $id, $invalidBehavior ); // TODO: Change the autogenerated stub
+        $_defaults = array(
+            'app.mode'            => $_appMode = static::cli() ? 'console' : 'web',
+            'app.host_name'       => $_hostname = $this->_determineHostName(),
+            'app.base_path'       => $_basePath = dirname( $documentRoot ),
+            'app.log_path'        => $_logPath = $_basePath . DIRECTORY_SEPARATOR . 'log',
+            'app.config_path'     => $_configPath = $_basePath . DIRECTORY_SEPARATOR . 'config',
+            'app.storage_path'    => $_storagePath = $_basePath . DIRECTORY_SEPARATOR . 'storage',
+            'app.private_path'    => $_storagePath . DIRECTORY_SEPARATOR . '.private',
+            'app.config_file'     => $_configFile = $_configPath . DIRECTORY_SEPARATOR . $_appMode . '.php',
+            'app.run_id'          => $_runId = static::_setAppRunId( $_hostname ),
+            'app.app_path'        => $_basePath . DIRECTORY_SEPARATOR . 'web',
+            'app.template_path'   => $_configPath . DIRECTORY_SEPARATOR . 'templates',
+            'app.vendor_path'     => $_basePath . DIRECTORY_SEPARATOR . 'vendor',
+            'app.hosted_instance' => $this->hostedInstance(),
+        );
+
+        if ( null === ( $_logFile = $this->getParameter( 'app.log_file', static::NULL_ON_INVALID_REFERENCE ) ) )
+        {
+            $_defaults['app.log_file'] = $_logFile = $_appMode . '.' . $_hostname . '.log';
+        }
+
+        //  Create a logger if there isn't one
+        try
+        {
+            $_logger = $this->get( 'logger' );
+        }
+        catch ( \Exception $_ex )
+        {
+            $_handler = new StreamHandler( $_logFile );
+            $_handler->setFormatter( new PaddedLineFormatter( null, null, true, true ) );
+            $_logger = new Logger( 'app', array($_handler) );
+        }
+
+        $this->set( 'logger', $_logger );
+
+        foreach ( $_defaults as $_key => $_value )
+        {
+            $this->setParameter( $_key, $_value );
+        }
+
+        $this->set( 'store', $this->_createStore( $_basePath ) );
     }
 
+    /**
+     * @param string $basePath
+     *
+     * @return Flexistore|\CFileCache|\CMemCache
+     */
+    protected function _createStore( $basePath = null )
+    {
+        if ( null === ( $_cache = $this->_createMemcache() ) )
+        {
+            $_basePath = $basePath ?: $this->getParameter( 'app.base_path' );
+
+            $_cachePath =
+                $this->getParameter( 'app.hosted_instance' )
+                    ? sys_get_temp_dir() . DIRECTORY_SEPARATOR . '.dreamfactory' . DIRECTORY_SEPARATOR . '.cache'
+                    :
+                    $_basePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.private' . DIRECTORY_SEPARATOR . '.cache';
+
+            if ( !is_dir( $_cachePath ) && false === mkdir( $_cachePath, 0777, true ) )
+            {
+                throw new \RuntimeException( 'Unable to locate a suitable pre-flight cache path.' );
+            }
+
+            if ( null === ( $_cache = $this->_createFileCache( $_cachePath ) ) )
+            {
+                throw new \RuntimeException( 'Unable to create pre-flight cache.' );
+            }
+        }
+
+        return $_cache;
+    }
+
+    /**
+     * @return \CMemCache|Flexistore|null
+     */
+    protected function _createMemcache()
+    {
+        $_cache = null;
+        $_memcache = Includer::includeIfExists( $this->getParameter( 'app.config_path' . DIRECTORY_SEPARATOR . 'memcached.config.php' ) );
+
+        if ( !empty( $_memcache ) )
+        {
+            try
+            {
+                $_cache = new \CMemCache();
+                $_cache->setServers( $_memcache );
+            }
+            catch ( \Exception $_ex )
+            {
+                $_cache = Flexistore::createMemcachedStore( $_memcache );
+            }
+
+            return $_cache;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $cachePath
+     *
+     * @return \CFileCache|Flexistore
+     */
+    protected function _createFileCache( $cachePath )
+    {
+        //  Make a file cache...
+        try
+        {
+            $_cache = new \CFileCache();
+            $_cache->hashKey = false;
+            $_cache->cachePath = $cachePath;
+        }
+        catch ( \Exception $_ex )
+        {
+            //  Try a flexistore if all else fails
+            $_cache = Flexistore::createFileStore( $cachePath, null, static::DEFAULT_NAMESPACE );
+        }
+
+        return $_cache;
+    }
 }
 
