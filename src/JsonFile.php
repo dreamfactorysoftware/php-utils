@@ -177,6 +177,8 @@ class JsonFile
         $data = static::encode( $data, $options );
         $_fileCopy = str_replace( array('{file}', '{date}'), array($file, date( 'YmdHis' )), static::BACKUP_FORMAT );
 
+        FileSystem::ensurePath( dirname( $file ) );
+
         if ( static::$_makeBackups && file_exists( $file ) )
         {
             if ( false === @copy( $file, $_fileCopy ) )
