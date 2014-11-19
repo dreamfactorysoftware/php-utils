@@ -65,23 +65,28 @@ class Environment
      * PHP gethostname() call is used.
      *
      * @param bool $checkServer If false, the $_SERVER variable is not checked.
+     * @param bool $fqdn        If true, the fully qualified domain name is returned. Otherwise just the first portion.
      *
      * @return string
      */
-    public static function getHostname( $checkServer = true )
+    public static function getHostname( $checkServer = true, $fqdn = true )
     {
         //	Figure out my name
         if ( $checkServer && isset( $_SERVER, $_SERVER['HTTP_HOST'] ) )
         {
-            $_parts = explode( '.', $_SERVER['HTTP_HOST'] );
-
-            if ( count( $_parts ) > 0 )
-            {
-                return $_parts[0];
-            }
+            $_hostname = $_SERVER['HTTP_HOST'];
+        }
+        else
+        {
+            $_hostname = gethostname();
         }
 
-        return gethostname();
+        $_parts = explode( '.', $_hostname );
+
+        return
+            $fqdn
+                ? $_hostname
+                : ( count( $_parts ) ? $_parts[0] : $_hostname );
     }
 
     /**

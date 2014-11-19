@@ -1,9 +1,7 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use Doctrine\Common\Cache\Cache;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use Kisma\Core\Utility\Log;
 use Kisma\Core\Utility\Scalar;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,17 +54,9 @@ class Cors
     //********************************************************************************
 
     /**
-     * @type string
-     */
-    private $_id = null;
-    /**
      * @type LoggerInterface
      */
     protected $_logger;
-    /**
-     * @type Cache
-     */
-    protected $_cache;
     /**
      * @type Request The inbound request
      */
@@ -84,9 +74,21 @@ class Cors
      */
     protected $_whitelist;
     /**
-     * @type string The path to the config file, if any
+     * @type string The CORS config file, if any
      */
-    protected $_configPath;
+    protected $_configFile;
+    /**
+     * @type string The origin of the request
+     */
+    protected $_requestOrigin = null;
+    /**
+     * @type string The verb of the request
+     */
+    protected $_requestVerb = null;
+    /**
+     * @type bool True if this request utilizes CORS
+     */
+    protected $_corsRequest = false;
 
     //******************************************************************************
     //* Methods
@@ -95,40 +97,28 @@ class Cors
     /**
      * Constructor
      *
-     * @param string          $id         An id for this connection
-     * @param string          $configPath The path to store the CORS configuration file
-     * @param Cache           $cache      Optional cache for computed CORS info
-     * @param LoggerInterface $logger     A logger to write to
+     * @param string  $configFile The CORS config file, if any
+     * @param Request $request    Optional request object. If not given, one will be created
      */
-    public function __construct( $id, $configPath = null, $cache = null, $logger = null )
+    public function __construct( $configFile = null, $request = null )
     {
-        $this->_id = $id ?: static::WHITELIST_KEY;
-        $this->_configPath = $configPath ?: Environment::getTempPath( '.cache' );
-        $this->_cache = $cache;
-        $this->_logger = $logger ?: Log::createLogger( 'cors' );
-
         //  Set defaults
+        $this->_configFile = $configFile;
+        $this->_request = $request ?: Request::createFromGlobals();
         $this->_headers = explode( ',', static::DEFAULT_ALLOWED_HEADERS );
-        $this->_request = Request::createFromGlobals();
         $this->_verbs = explode( ',', static::DEFAULT_ALLOWED_VERBS );
 
-        //  Load whitelist from cache if there...
-        $this->_whitelist =
-            $this->_cache
-                ? ( $this->_cache->fetch( $this->_id ) ?: array() )
-                : array();
+        //  See if we even need CORS
+        $this->_requestOrigin = trim( $this->_request->headers->get( 'http-origin' ) );
+        $this->_requestVerb = $this->_request->getMethod();
+        $this->_corsRequest = !empty( $this->_requestOrigin );
 
-        //  Load any stored config now
-        $this->_loadConfig();
-    }
-
-    /**
-     * Cache whitelist if we can
-     */
-    public function __destruct()
-    {
-        //  Cache available? save
-        $this->_cache && $this->_cache->save( $this->_id, $this->_whitelist, static::CACHE_TTL );
+        //  Load whitelist from file
+        // if there...
+        if ( $this->_configFile )
+        {
+            $this->_whitelist = JsonFile::decodeFile( $configFile );
+        }
     }
 
     /**
@@ -392,21 +382,41 @@ class Cors
     }
 
     /**
-     * @return Cache
+     * @return LoggerInterface
      */
-    public function getCache()
+    public function getLogger()
     {
-        return $this->_cache;
+        return $this->_logger;
     }
 
     /**
-     * @param Cache $cache
+     * @param LoggerInterface $logger
      *
      * @return Cors
      */
-    public function setCache( Cache $cache )
+    public function setLogger( LoggerInterface $logger )
     {
-        $this->_cache = $cache;
+        $this->_logger = $logger;
+
+        return $this;
+    }
+
+    /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->_request;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return Cors
+     */
+    public function setRequest( $request )
+    {
+        $this->_request = $request;
 
         return $this;
     }
@@ -414,86 +424,29 @@ class Cors
     /**
      * @return array
      */
-    public function getAllowedHeaders()
+    public function getHeaders()
     {
         return $this->_headers;
     }
 
     /**
-     * @param array $allowedHeaders
-     *
-     * @return Cors
-     */
-    public function setAllowedHeaders( $allowedHeaders )
-    {
-        foreach ( $allowedHeaders as $_index => $_header )
-        {
-            $this->addAllowedHeader( $_header );
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param string $header
-     *
-     * @return bool
-     */
-    public function addAllowedHeader( $header )
-    {
-        if ( $header && !in_array( $header, $this->_headers ) )
-        {
-            $this->_headers[] = strtolower( str_replace( '_', '-', $header ) );
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * @return array
      */
-    public function getAllowedVerbs()
+    public function getVerbs()
     {
         return $this->_verbs;
     }
 
     /**
-     * @param array $allowedVerbs
+     * @param array $verbs
      *
      * @return Cors
      */
-    public function setAllowedVerbs( $allowedVerbs )
+    public function setVerbs( $verbs )
     {
-        $this->_verbs = $allowedVerbs;
+        $this->_verbs = $verbs;
 
         return $this;
-    }
-
-    /**
-     * @param string $verb
-     *
-     * @return bool
-     */
-    public function addAllowedVerb( $verb )
-    {
-        if ( $verb && !in_array( $verb, $this->_verbs ) )
-        {
-            $this->_verbs[] = $verb;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @return string
-     */
-    public function getId()
-    {
-        return $this->_id;
     }
 
     /**
@@ -514,5 +467,49 @@ class Cors
         $this->_whitelist = $whitelist;
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getConfigFile()
+    {
+        return $this->_configFile;
+    }
+
+    /**
+     * @param string $configFile
+     *
+     * @return Cors
+     */
+    public function setConfigFile( $configFile )
+    {
+        $this->_configFile = $configFile;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRequestOrigin()
+    {
+        return $this->_requestOrigin;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRequestVerb()
+    {
+        return $this->_requestVerb;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isCorsRequest()
+    {
+        return $this->_corsRequest;
     }
 }
