@@ -2,6 +2,8 @@
 namespace DreamFactory\Library\Utility;
 
 use Composer\Autoload\ClassLoader;
+use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseDefaults;
+use DreamFactory\Library\Enterprise\Storage\Enums\EnterprisePaths;
 use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseResources;
 use DreamFactory\Library\Enterprise\Storage\Resolver;
 use Kisma\Core\Components\Flexistore;
@@ -11,7 +13,6 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\ParameterNotFoundException;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * A generalized abstraction of ContainerBuilder for future customization
  */
-class AppInstance extends ContainerBuilder
+class PlatformInstance extends ContainerBuilder
 {
     //******************************************************************************
     //* Constants
@@ -29,23 +30,10 @@ class AppInstance extends ContainerBuilder
      * @type string
      */
     const DEFAULT_NAMESPACE = 'dreamfactory';
-
-    //******************************************************************************
-    //* Members
-    //******************************************************************************
-
     /**
-     * @type Request
+     * @type $this
      */
-    protected static $_request;
-    /**
-     * @type Response
-     */
-    protected static $_response;
-    /**
-     * @type AppInstance
-     */
-    protected static $_instance;
+    protected static $_instance = null;
 
     //******************************************************************************
     //* Methods
@@ -57,64 +45,93 @@ class AppInstance extends ContainerBuilder
      */
     public function __construct( ParameterBagInterface $parameterBag = null, $autoloader = null )
     {
-        $this->parameterBag = $this->parameterBag ?: new ParameterBag();
-
+        parent::__construct( $parameterBag );
         static::$_instance = $this;
-        static::$_request = Request::createFromGlobals();
-        static::$_response = Response::create();
 
-        $parameterBag = new ParameterBag(
-            $this->_initializeDefaults( IfSet::get( $_SERVER, 'DOCUMENT_ROOT' ), $parameterBag ? $parameterBag->all() : array() )
+        $this->set( 'autoloader', $autoloader );
+
+        $this->parameterBag->set(
+            'app.document_root',
+            $_documentRoot = IfSet::get( $_SERVER, 'DOCUMENT_ROOT', EnterpriseDefaults::DEFAULT_DOC_ROOT )
         );
 
-        try
+        if ( $this->parameterBag->has( 'app.resolver' ) )
         {
-            $_resolver = $parameterBag->get( 'resolver' );
-            $parameterBag->remove( 'resolver' );
+            $_resolver = $this->parameterBag->get( 'app.resolver' );
+            $this->parameterBag->remove( 'app.resolver' );
         }
-        catch ( ParameterNotFoundException $_ex )
+        else
         {
-            throw new ParameterNotFoundException( 'The runtime parameter "resolver" has not been set.' );
+            $_resolver = new Resolver();
         }
 
-        $autoloader && $this->set( 'autoloader', $autoloader );
-        $_resolver && $this->set( 'resolver', $_resolver );
+        $_resolver
+            ->registerLocator( EnterpriseResources::ZONE, array($this, 'locateZone') )
+            ->registerLocator( EnterpriseResources::PARTITION, array($this, 'locatePartition') )
+            ->registerLocator( EnterpriseResources::INSTALL_ROOT, array($this, 'locateInstallRoot') );
 
-        parent::__construct( $parameterBag );
+        $this->set( 'resolver', $_resolver );
 
-        $this->configure();
+        $this->configure( $_documentRoot );
     }
 
     /**
-     * Initialize the instance based on parameter settings
+     * Initialize the instance based on parameter settings not covered in ctor
+     *
+     * @param string $documentRoot
+     *
+     * @return array
      */
-    public function configure()
+    public function configure( $documentRoot )
     {
-        try
+        if ( true === $this->getParameter( 'app.debug', false ) )
         {
-            if ( true === $this->getParameter( 'app.debug', static::NULL_ON_INVALID_REFERENCE ) )
-            {
-                ini_set( 'display_errors', true );
-                defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
-            }
-        }
-        catch ( ParameterNotFoundException $_ex )
-        {
-            //  Ignored
+            ini_set( 'display_errors', true );
+            defined( 'YII_DEBUG' ) or define( 'YII_DEBUG', true );
         }
 
-        try
+        //  php-error utility
+        if ( true === $this->getParameter( 'app.debug.use_php_error', false ) && function_exists( 'reportErrors' ) )
         {
-            //  php-error utility
-            if ( true === $this->get( 'app.debug.use_php_error', static::NULL_ON_INVALID_REFERENCE ) && function_exists( 'reportErrors' ) )
-            {
-                reportErrors();
-            }
+            reportErrors();
         }
-        catch ( ParameterNotFoundException $_ex )
+
+        //  Get our base
+        $_basePath = dirname( $documentRoot );
+
+        //  Set request and response services
+        $this->set( 'request', Request::createFromGlobals() );
+        $this->set( 'response', Response::create() );
+        $this->set( 'store', $this->_createStore( $_basePath ) );
+
+        //  Global application defaults
+        $_defaults = array(
+            'app.mode'            => $_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' ),
+            'app.host_name'       => $_hostname = $this->_determineHostName(),
+            'app.base_path'       => $_basePath,
+            'app.log_path'        => $_logPath = $_basePath . DIRECTORY_SEPARATOR . 'log',
+            'app.log_file'        => $this->getParameter( 'app.log_file', $_appMode . '.' . $_hostname . '.log' ),
+            'app.config_path'     => $_configPath = $this->get( 'resolver' )->getConfigPath(),
+            'app.storage_path'    => $_storagePath = $this->get( 'resolver' )->getStoragePath(),
+            'app.private_path'    => $_privatePath = $this->get( 'resolver' )->getPrivatePath(),
+            'app.config_file'     => $_configFile = $_configPath . DIRECTORY_SEPARATOR . $_appMode . '.php',
+            'app.run_id'          => $_runId = $this->_getAppRunId( $_hostname ),
+            'app.app_path'        => $_basePath . DIRECTORY_SEPARATOR . 'web',
+            'app.template_path'   => $_configPath . DIRECTORY_SEPARATOR . 'templates',
+            'app.vendor_path'     => $_basePath . DIRECTORY_SEPARATOR . 'vendor',
+            'app.hosted_instance' => EnterprisePaths::hostedInstance(),
+        );
+
+        //  Create a logger if there isn't one
+        if ( !$this->has( 'logger' ) )
         {
-            //  Ignored
+            $_handler = new StreamHandler( $_defaults['app.log_file'] );
+            $_handler->setFormatter( new PaddedLineFormatter( null, null, true, true ) );
+            $_logger = new Logger( 'app', array($_handler) );
+            $this->set( 'logger', $_logger );
         }
+
+        return $_defaults;
     }
 
     /**
@@ -126,14 +143,10 @@ class AppInstance extends ContainerBuilder
      */
     public function run( $documentRoot )
     {
-        $_basePath = $this->getParameter( 'app.base_path' );
         $_configPath = $this->getParameter( 'app.config_path' );
 
         //	Load constants...
         Includer::includeIfExists( $_configPath . DIRECTORY_SEPARATOR . 'constants.config.php', true, false );
-
-        //  Initialize the app store
-        static::_createStore( $_basePath );
 
         //	Create an alias for our configuration directory
         static::alias( 'application.config', $_configPath );
@@ -151,8 +164,8 @@ class AppInstance extends ContainerBuilder
                 'app.run_id'             => $this->_getAppRunId( $_hostname ),
                 'platform.host_name'     => $_hostname,
                 'platform.fabric_hosted' => $this->getParameter( 'app.hosted_instance' ),
-                'app.storage_path'       => $this->get( 'resolver' )->getStoragePath(),
-                'app.private_path'       => $this->get( 'resolver' )->getPrivatePath(),
+                'app.storage_path'       => $this->getParameter( 'app.storage_path' ),
+                'app.private_path'       => $this->getParameter( 'app.private_path' ),
                 'app.config'             => static::_getAppConfig(),
             )
         );
@@ -173,8 +186,9 @@ class AppInstance extends ContainerBuilder
 
         //	Instantiate and run baby!
         /** @type \CApplication $_app */
-        $_app = \Yii::createApplication( $this->getParameter( 'app.class' ), $_runConfig['app.config'] );
-        static::app( $_app );
+        static::app(
+            $_app = \Yii::createApplication( $this->getParameter( 'app.class' ), $_runConfig['app.config'] )
+        );
 
         $this->getParameter( 'app.auto_run', true ) && $_app->run();
 
@@ -183,44 +197,12 @@ class AppInstance extends ContainerBuilder
     }
 
     /**
-     * @return AppInstance
-     */
-    public static function getInstance()
-    {
-        return self::$_instance;
-    }
-
-    /**
-     * @return Request
-     */
-    public static function getRequest()
-    {
-        return self::$_request;
-    }
-
-    /**
-     * @return Response
-     */
-    public static function getResponse()
-    {
-        return self::$_response;
-    }
-
-    /**
      * @return array|null
      */
     protected function _getAppConfig()
     {
         $_configFile = $this->getParameter( 'app.config_file' );
-
-        try
-        {
-            $_config = $this->getParameter( 'app.config' );
-        }
-        catch ( ParameterNotFoundException $_ex )
-        {
-            $_config = null;
-        }
+        $_config = $this->getParameter( 'app.config' );
 
         //  If not cached, or we still don't have a configuration array, read from the file
         if ( empty( $_config ) && !empty( $_configFile ) )
@@ -500,6 +482,8 @@ class AppInstance extends ContainerBuilder
     }
 
     /**
+     * A getParameter method that returns a default value instead of an exception
+     *
      * @param string $name
      * @param mixed  $defaultValue
      *
@@ -507,74 +491,14 @@ class AppInstance extends ContainerBuilder
      */
     public function getParameter( $name, $defaultValue = null )
     {
-        try
+        if ( !parent::hasParameter( $name ) )
         {
-            $_value = $this->parameterBag->get( $name );
-        }
-        catch ( ParameterNotFoundException $_ex )
-        {
-            $_value = $defaultValue;
+            parent::setParameter( $name, $defaultValue );
+
+            return $defaultValue;
         }
 
-        return $_value;
-    }
-
-    /**
-     * Initialize the defaults for this application
-     *
-     * @param string $documentRoot
-     * @param array  $parameters
-     *
-     * @return array
-     */
-    protected function _initializeDefaults( $documentRoot, $parameters = array() )
-    {
-        //  Global application defaults
-        $_defaults = array_merge(
-            array(
-                'app.mode'            => $_appMode = ( 'cli' == PHP_SAPI ? 'console' : 'web' ),
-                'app.host_name'       => $_hostname = $this->_determineHostName(),
-                'app.base_path'       => $_basePath = dirname( $documentRoot ),
-                'app.log_path'        => $_logPath = $_basePath . DIRECTORY_SEPARATOR . 'log',
-                'app.config_path'     => $_configPath = $_basePath . DIRECTORY_SEPARATOR . 'config',
-                'app.storage_path'    => $_storagePath = $_basePath . DIRECTORY_SEPARATOR . 'storage',
-                'app.private_path'    => $_storagePath . DIRECTORY_SEPARATOR . '.private',
-                'app.config_file'     => $_configFile = $_configPath . DIRECTORY_SEPARATOR . $_appMode . '.php',
-                'app.run_id'          => $_runId = $this->_getAppRunId( $_hostname ),
-                'app.app_path'        => $_basePath . DIRECTORY_SEPARATOR . 'web',
-                'app.template_path'   => $_configPath . DIRECTORY_SEPARATOR . 'templates',
-                'app.vendor_path'     => $_basePath . DIRECTORY_SEPARATOR . 'vendor',
-                'app.hosted_instance' => IfSet::get( $parameters, 'app.hosted_instance' ),
-            ),
-            $parameters
-        );
-
-        $_defaults['app.log_file'] = IfSet::get( $parameters, 'app.log_file', $_appMode . '.' . $_hostname . '.log' );
-
-        //  Create a logger if there isn't one
-        if ( !$this->has( 'logger' ) )
-        {
-            $_handler = new StreamHandler( $_defaults['app.log_file'] );
-            $_handler->setFormatter( new PaddedLineFormatter( null, null, true, true ) );
-            $_logger = new Logger( 'app', array($_handler) );
-            $this->set( 'logger', $_logger );
-        }
-
-        !$this->has( 'store' ) && $this->set( 'store', $this->_createStore( $_basePath ) );
-
-        if ( !$this->has( 'resolver' ) )
-        {
-            $_resolver = new Resolver();
-
-            $_resolver
-                ->registerLocator( EnterpriseResources::ZONE, array($this, 'locateZone') )
-                ->registerLocator( EnterpriseResources::PARTITION, array($this, 'locatePartition') )
-                ->registerLocator( EnterpriseResources::INSTALL_ROOT, array($this, 'locateInstallRoot') );
-
-            $this->set( 'resolver', $_resolver );
-        }
-
-        return $_defaults;
+        return parent::getParameter( $name );
     }
 
     /**
@@ -589,10 +513,9 @@ class AppInstance extends ContainerBuilder
             $_basePath = $basePath ?: $this->getParameter( 'app.base_path' );
 
             $_cachePath =
-                $this->getParameter( 'app.hosted_instance' )
+                $this->getParameter( 'app.hosted_instance', false )
                     ? sys_get_temp_dir() . DIRECTORY_SEPARATOR . '.dreamfactory' . DIRECTORY_SEPARATOR . '.cache'
-                    :
-                    $_basePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.private' . DIRECTORY_SEPARATOR . '.cache';
+                    : $_basePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . '.private' . DIRECTORY_SEPARATOR . '.cache';
 
             if ( !is_dir( $_cachePath ) && false === mkdir( $_cachePath, 0777, true ) )
             {
@@ -670,6 +593,5 @@ class AppInstance extends ContainerBuilder
 
         return hash( 'sha256', $_key );
     }
-
 }
 
