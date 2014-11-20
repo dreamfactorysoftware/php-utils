@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
+use Composer\Autoload\ClassLoader;
 use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseResources;
 use DreamFactory\Library\Enterprise\Storage\Resolver;
 use Kisma\Core\Components\Flexistore;
@@ -52,19 +53,34 @@ class AppInstance extends ContainerBuilder
 
     /**
      * @param ParameterBagInterface $parameterBag
+     * @param ClassLoader           $autoloader
      */
-    public function __construct( ParameterBagInterface $parameterBag = null )
+    public function __construct( ParameterBagInterface $parameterBag = null, $autoloader = null )
     {
+        $this->parameterBag = $this->parameterBag ?: new ParameterBag();
+
         static::$_instance = $this;
         static::$_request = Request::createFromGlobals();
         static::$_response = Response::create();
 
-        $_bag = new ParameterBag(
-            $this->_initializeDefaults( IfSet::get( $_SERVER, 'DOCUMENT_ROOT' ) ),
-            $parameterBag ? $parameterBag->all() : null
+        $parameterBag = new ParameterBag(
+            $this->_initializeDefaults( IfSet::get( $_SERVER, 'DOCUMENT_ROOT' ), $parameterBag ? $parameterBag->all() : array() )
         );
 
-        parent::__construct( $_bag );
+        try
+        {
+            $_resolver = $parameterBag->get( 'resolver' );
+            $parameterBag->remove( 'resolver' );
+        }
+        catch ( ParameterNotFoundException $_ex )
+        {
+            throw new ParameterNotFoundException( 'The runtime parameter "resolver" has not been set.' );
+        }
+
+        $autoloader && $this->set( 'autoloader', $autoloader );
+        $_resolver && $this->set( 'resolver', $_resolver );
+
+        parent::__construct( $parameterBag );
 
         $this->configure();
     }
@@ -160,10 +176,34 @@ class AppInstance extends ContainerBuilder
         $_app = \Yii::createApplication( $this->getParameter( 'app.class' ), $_runConfig['app.config'] );
         static::app( $_app );
 
-        $this->getParameter( 'app.auto_run' ) && $_app->run();
+        $this->getParameter( 'app.auto_run', true ) && $_app->run();
 
         //	Return our spawn
         return $_app;
+    }
+
+    /**
+     * @return AppInstance
+     */
+    public static function getInstance()
+    {
+        return self::$_instance;
+    }
+
+    /**
+     * @return Request
+     */
+    public static function getRequest()
+    {
+        return self::$_request;
+    }
+
+    /**
+     * @return Response
+     */
+    public static function getResponse()
+    {
+        return self::$_response;
     }
 
     /**
@@ -434,11 +474,10 @@ class AppInstance extends ContainerBuilder
      * Locates the installation root of DSP
      *
      * @param string $start
-     * @param bool   $partitioned
      *
      * @return string
      */
-    public function locateInstallRoot( $start = null, $partitioned = false )
+    public function locateInstallRoot( $start = null )
     {
         $_path = $start ?: getcwd();
 
@@ -458,6 +497,26 @@ class AppInstance extends ContainerBuilder
         }
 
         return $_path;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed  $defaultValue
+     *
+     * @return mixed
+     */
+    public function getParameter( $name, $defaultValue = null )
+    {
+        try
+        {
+            $_value = $this->parameterBag->get( $name );
+        }
+        catch ( ParameterNotFoundException $_ex )
+        {
+            $_value = $defaultValue;
+        }
+
+        return $_value;
     }
 
     /**
@@ -485,26 +544,17 @@ class AppInstance extends ContainerBuilder
                 'app.app_path'        => $_basePath . DIRECTORY_SEPARATOR . 'web',
                 'app.template_path'   => $_configPath . DIRECTORY_SEPARATOR . 'templates',
                 'app.vendor_path'     => $_basePath . DIRECTORY_SEPARATOR . 'vendor',
-                'app.hosted_instance' => $this->getParameter( 'app.hosted_instance' ),
+                'app.hosted_instance' => IfSet::get( $parameters, 'app.hosted_instance' ),
             ),
             $parameters
         );
 
-        if ( null === ( $_logFile = $this->getParameter( 'app.log_file', static::NULL_ON_INVALID_REFERENCE ) ) )
-        {
-            $_defaults['app.log_file'] = $_logFile = $_appMode . '.' . $_hostname . '.log';
-        }
-
-        //  Set all the parameters
-        foreach ( $_defaults as $_key => $_value )
-        {
-            $this->setParameter( $_key, $_value );
-        }
+        $_defaults['app.log_file'] = IfSet::get( $parameters, 'app.log_file', $_appMode . '.' . $_hostname . '.log' );
 
         //  Create a logger if there isn't one
         if ( !$this->has( 'logger' ) )
         {
-            $_handler = new StreamHandler( $_logFile );
+            $_handler = new StreamHandler( $_defaults['app.log_file'] );
             $_handler->setFormatter( new PaddedLineFormatter( null, null, true, true ) );
             $_logger = new Logger( 'app', array($_handler) );
             $this->set( 'logger', $_logger );
