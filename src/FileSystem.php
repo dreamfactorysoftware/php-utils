@@ -196,6 +196,8 @@ class FileSystem
             return false;
         }
 
+        @chmod( $path, 02775 );
+
         return true;
     }
 }

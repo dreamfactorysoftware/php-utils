@@ -9,8 +9,6 @@ use Symfony\Component\DependencyInjection\Exception\ServiceCircularReferenceExce
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\ScopeInterface;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * A general application container
@@ -34,16 +32,22 @@ class AppBuilder implements ContainerInterface
      * @type ContainerBuilder
      */
     protected $_container;
+    /**
+     * @type Environment
+     */
+    protected $_environment;
 
     //******************************************************************************
     //* Methods
     //******************************************************************************
 
     /**
-     * @param array $settings The settings needed to bootstrap and run the app
+     * @param Environment $environment
+     * @param array       $settings The settings needed to bootstrap and run the app
      */
-    public function __construct( $settings = array() )
+    public function __construct( $environment, $settings = array() )
     {
+        $this->_environment = new Environment();
         $this->_container = new ContainerBuilder( new ParameterBag( $settings ) );
 
         $this->_configure();
@@ -77,8 +81,8 @@ class AppBuilder implements ContainerInterface
                 'app.template_path'   => $this->getParameter( 'app.config_path' ) . DIRECTORY_SEPARATOR . 'templates',
                 'app.vendor_path'     => $this->getParameter( 'app.base_path' ) . DIRECTORY_SEPARATOR . 'vendor',
                 'app.hosted_instance' => $this->getParameter( 'app.hosted_instance' ),
-                'app.request'         => Request::createFromGlobals(),
-                'app.response'        => Response::create(),
+                'app.request'         => $this->getParameter( 'app.request' ),
+                'app.response'        => $this->getParameter( 'app.response' ),
             )
         );
     }
@@ -91,11 +95,18 @@ class AppBuilder implements ContainerInterface
         //  Storage resolver if we don't have one...
         if ( !$this->has( 'resolver' ) )
         {
-            $this->_container
-                ->register( 'resolver', 'DreamFactory\\Library\\Enterprise\\Storage\\Resolver' )
-                ->addArgument( '%resolver.hostname%' )
-                ->addArgument( '%resolver.mount_point%' )
-                ->addArgument( '%resolver.install_root%' );
+            if ( null !== ( $_resolver = $this->getParameter( 'app.resolver' ) ) )
+            {
+                $this->_container->set( 'resolver', $_resolver );
+            }
+            else
+            {
+                $this->_container
+                    ->register( 'resolver', 'DreamFactory\\Library\\Enterprise\\Storage\\Resolver' )
+                    ->addArgument( '%resolver.hostname%' )
+                    ->addArgument( '%resolver.mount_point%' )
+                    ->addArgument( '%resolver.install_root%' );
+            }
         }
 
         //  Create a logger if there isn't one

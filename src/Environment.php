@@ -1,46 +1,50 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
+use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseDefaults;
+use DreamFactory\Library\Enterprise\Storage\Enums\EnterprisePaths;
+use DreamFactory\Library\Enterprise\Storage\Resolver;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
 /**
  * Contains helpers that discover information about the current runtime environment
  */
-class Environment
+class Environment extends EnterpriseDefaults
 {
     //******************************************************************************
-    //* Constants
+    //* Members
     //******************************************************************************
 
     /**
-     * @type string
+     * @type Request
      */
-    const ROOT_MARKER = '/.dreamfactory.php';
+    protected $_request;
     /**
-     * @type string
+     * @type Response
      */
-    const FABRIC_MARKER = '/var/www/.fabric_hosted';
-    /**
-     * @type string
-     */
-    const MAINTENANCE_MARKER = '/var/www/.fabric_maintenance';
-    /**
-     * @type string
-     */
-    const PRIVATE_PATH = '/storage/.private';
-    /**
-     * @type string
-     */
-    const AUTOLOAD_PATH = '/vendor/autoload.php';
+    protected $_response;
 
     //******************************************************************************
     //* Methods
     //******************************************************************************
 
     /**
+     * @param Request  $request
+     * @param Response $response
+     */
+    public function __construct( Request $request = null, Response $response = null )
+    {
+        $this->_request = $request ?: $this->getRequest();
+        $this->_response = $response ?: $this->getResponse();
+    }
+
+    /**
      * Try a variety of cross platform methods to determine the current user
      *
      * @return bool|string
      */
-    public static function getUserName()
+    public function getUserName()
     {
         //  List of places to get users in order
         $_users = array(
@@ -69,7 +73,7 @@ class Environment
      *
      * @return string
      */
-    public static function getHostname( $checkServer = true, $fqdn = true )
+    public function getHostname( $checkServer = true, $fqdn = true )
     {
         //	Figure out my name
         if ( $checkServer && isset( $_SERVER, $_SERVER['HTTP_HOST'] ) )
@@ -92,33 +96,13 @@ class Environment
     /**
      * Gets a temporary path suitable for writing by the current user...
      *
-     * @param string $subPath      The sub-directory of the temporary path created that is required
-     * @param bool   $ensureExists If true, and the directory does not exist, it will be created
+     * @param string $subPath The sub-directory of the temporary path created that is required
      *
      * @return bool|string
      */
-    public static function getTempPath( $subPath = null, $ensureExists = true )
+    public function getTempPath( $subPath = null )
     {
-        $_path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $subPath;
-
-        if ( !is_dir( $_path ) )
-        {
-            if ( $ensureExists && false !== mkdir( $_path, 0777, true ) )
-            {
-                return $_path;
-            }
-
-            return false;
-        }
-
-        //  If I can't read/write to path, make a new one for me myself and I
-        if ( !is_readable( $_path ) || !is_writeable( $_path ) )
-        {
-            return static::getTempPath( static::getUserName() . DIRECTORY_SEPARATOR . $subPath, $ensureExists );
-        }
-
-        //  Looks good
-        return $_path;
+        return FileSystem::ensurePath( sys_get_temp_dir() . DIRECTORY_SEPARATOR . ltrim( $subPath, DIRECTORY_SEPARATOR ) );
     }
 
     /**
@@ -129,9 +113,9 @@ class Environment
      *
      * @return string
      */
-    public static function createRequestId( $entropy = null, $algorithm = 'sha256' )
+    public function createRequestId( $entropy = null, $algorithm = 'sha256' )
     {
-        $_hostname = Environment::getHostname();
+        $_hostname = static::getHostname();
 
         return hash(
             $algorithm,
@@ -151,7 +135,7 @@ class Environment
      *
      * @return string|bool The absolute path to the platform installation. False if not found
      */
-    public static function locatePlatformBasePath( $startPath = __DIR__ )
+    public function locatePlatformBasePath( $startPath = null )
     {
         //  Start path given or this file's directory
         $_path = $startPath ?: __DIR__;
@@ -161,13 +145,15 @@ class Environment
             $_path = rtrim( $_path, ' /' );
 
             //  Vendor and autoload?
-            if ( file_exists( $_path . static::AUTOLOAD_PATH ) )
+            if ( file_exists( $_path . static::COMPOSER_MARKER ) )
             {
                 break;
             }
 
             //  Installation root?
-            if ( file_exists( $_path . static::ROOT_MARKER ) && is_dir( $_path . static::PRIVATE_PATH ) )
+            if ( file_exists( $_path . static::INSTALL_ROOT_MARKER ) &&
+                is_dir( $_path . EnterprisePaths::STORAGE_PATH . EnterprisePaths::PRIVATE_STORAGE_PATH )
+            )
             {
                 break;
             }
@@ -183,6 +169,144 @@ class Environment
         }
 
         return $_path;
+    }
+
+    /**
+     * @return bool True if this uses hosted/shared storage
+     */
+    public function isHosted()
+    {
+        static $_hostedInstance = null;
+        static $_validRoots = array(EnterpriseDefaults::DEFAULT_DOC_ROOT, EnterpriseDefaults::DEFAULT_DEV_DOC_ROOT);
+
+        return
+            $_hostedInstance = $_hostedInstance
+                ?:
+                in_array( IfSet::get( $_SERVER, 'DOCUMENT_ROOT' ), $_validRoots ) &&
+                ( file_exists( EnterpriseDefaults::FABRIC_MARKER ) || file_exists( EnterpriseDefaults::ENTERPRISE_MARKER ) );
+    }
+
+    /**
+     * @param string $zone
+     * @param bool   $partitioned
+     *
+     * @return bool|string
+     * @todo convert to resource locator
+     */
+    public function locateZone( $zone = null, $partitioned = false )
+    {
+        if ( !empty( $zone ) )
+        {
+            return $zone;
+        }
+
+        //  Zones only apply to partitioned layouts
+        if ( !$partitioned )
+        {
+            return false;
+        }
+
+        //  Try ec2...
+        $_url = getenv( 'EC2_URL' ) ?: Resolver::DEBUG_ZONE_URL;
+
+        //  Not on EC2, we're something else
+        if ( empty( $_url ) )
+        {
+            return false;
+        }
+
+        //  Get the EC2 zone of this instance from the url
+        $_zone = str_ireplace( array('https://', '.amazonaws.com'), null, $_url );
+
+        return $_zone;
+    }
+
+    /**
+     * Given a storage ID, return its partition
+     *
+     * @param string $storageId
+     * @param bool   $partitioned
+     *
+     * @return string
+     * @todo convert to resource locator
+     */
+    public function locatePartition( $storageId, $partitioned )
+    {
+        return $partitioned ? substr( $storageId, 0, 2 ) : false;
+    }
+
+    /**
+     * Locates the installation root of DSP
+     *
+     * @param string $start
+     *
+     * @return string
+     * @todo convert to resource locator
+     */
+    public function locateInstallRoot( $start = null )
+    {
+        $_path = $start ?: getcwd();
+
+        while ( true )
+        {
+            if ( file_exists( $_path . DIRECTORY_SEPARATOR . 'composer.json' ) && is_dir( $_path . DIRECTORY_SEPARATOR . 'vendor' ) )
+            {
+                break;
+            }
+
+            $_path = dirname( $_path );
+
+            if ( empty( $_path ) || $_path == DIRECTORY_SEPARATOR )
+            {
+                throw new \RuntimeException( 'Platform installation path not found.' );
+            }
+        }
+
+        return $_path;
+    }
+
+    /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->_request ?: $this->_request = Request::createFromGlobals();
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return Environment
+     */
+    public function setRequest( $request )
+    {
+        $this->_request = $request;
+
+        return $this;
+    }
+
+    /**
+     * @param mixed $content
+     * @param int   $status
+     * @param array $headers
+     *
+     * @return Response
+     */
+    public function getResponse( $content = null, $status = 200, $headers = array() )
+    {
+        return $this->_response ?: $this->_response = Response::create( $content, $status, $headers );
+    }
+
+    /**
+     * @param Response $response
+     *
+     * @return Environment
+     */
+    public function setResponse( $response )
+    {
+        $this->_response = $response;
+
+        return $this;
     }
 
 }
