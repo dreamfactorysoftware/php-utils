@@ -3,17 +3,12 @@ namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Enterprise\Storage\Resolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
-use Symfony\Component\DependencyInjection\Exception\ServiceCircularReferenceException;
-use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
-use Symfony\Component\DependencyInjection\ScopeInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 /**
  * A general application container
  */
-class AppBuilder implements ContainerInterface
+class AppBuilder extends ContainerBuilder
 {
     //******************************************************************************
     //* Constants
@@ -25,30 +20,13 @@ class AppBuilder implements ContainerInterface
     const DEFAULT_NAMESPACE = 'app';
 
     //******************************************************************************
-    //* Members
-    //******************************************************************************
-
-    /**
-     * @type ContainerBuilder
-     */
-    protected $_container;
-    /**
-     * @type Environment
-     */
-    protected $_environment;
-
-    //******************************************************************************
     //* Methods
     //******************************************************************************
 
-    /**
-     * @param Environment $environment
-     * @param array       $settings The settings needed to bootstrap and run the app
-     */
-    public function __construct( $environment, $settings = array() )
+    /** @inheritdoc */
+    public function __construct( ParameterBagInterface $parameterBag )
     {
-        $this->_environment = new Environment();
-        $this->_container = new ContainerBuilder( new ParameterBag( $settings ) );
+        parent::__construct( $parameterBag );
 
         $this->_configure();
     }
@@ -81,8 +59,12 @@ class AppBuilder implements ContainerInterface
                 'app.template_path'   => $this->getParameter( 'app.config_path' ) . DIRECTORY_SEPARATOR . 'templates',
                 'app.vendor_path'     => $this->getParameter( 'app.base_path' ) . DIRECTORY_SEPARATOR . 'vendor',
                 'app.hosted_instance' => $this->getParameter( 'app.hosted_instance' ),
-                'app.request'         => $this->getParameter( 'app.request' ),
-                'app.response'        => $this->getParameter( 'app.response' ),
+                'app.request'         => $this->get( 'environment' )->getRequest(),
+                'app.response'        => $this->get( 'environment' )->getResponse(),
+                'app.request_id'      => $this->get( 'environment' )->getRequestId(
+                    $this->getParameter( 'environment.request_id.algorithm' ),
+                    $this->getParameter( 'environment.request_id.entropy' )
+                )
             )
         );
     }
@@ -92,28 +74,21 @@ class AppBuilder implements ContainerInterface
      */
     protected function _registerDefaultServices()
     {
+        //  Register the environment service
+        $this
+            ->register( 'environment', 'DreamFactory\\Library\\Utility\\Environment' )
+            ->addArgument( '%environment.settings%' );
+
         //  Storage resolver if we don't have one...
-        if ( !$this->has( 'resolver' ) )
-        {
-            if ( null !== ( $_resolver = $this->getParameter( 'app.resolver' ) ) )
-            {
-                $this->_container->set( 'resolver', $_resolver );
-            }
-            else
-            {
-                $this->_container
-                    ->register( 'resolver', 'DreamFactory\\Library\\Enterprise\\Storage\\Resolver' )
-                    ->addArgument( '%resolver.hostname%' )
-                    ->addArgument( '%resolver.mount_point%' )
-                    ->addArgument( '%resolver.install_root%' );
-            }
-        }
+        $this->register( 'resolver', 'DreamFactory\\Library\\Enterprise\\Storage\\Resolver' )
+            ->addArgument( '%resolver.hostname%' )
+            ->addArgument( '%resolver.mount_point%' )
+            ->addArgument( '%resolver.install_root%' );
 
         //  Create a logger if there isn't one
         if ( !$this->has( 'logger' ) )
         {
-            $this->_container
-                ->register( 'logger', 'Monolog\\Logger' )
+            $this->register( 'logger', 'Monolog\\Logger' )
                 ->addArgument( '%logger.channel%' )
                 ->addArgument( '%logger.handlers%' )
                 ->addArgument( '%logger.processors%' );
@@ -265,14 +240,14 @@ class AppBuilder implements ContainerInterface
      */
     public function getParameter( $name, $defaultValue = null )
     {
-        if ( !$this->_container->hasParameter( $name ) )
+        if ( !$this->hasParameter( $name ) )
         {
-            $this->_container->setParameter( $name, $defaultValue );
+            $this->setParameter( $name, $defaultValue );
 
             return $defaultValue;
         }
 
-        return $this->_container->getParameter( $name );
+        return parent::getParameter( $name );
     }
 
     /**
@@ -290,18 +265,6 @@ class AppBuilder implements ContainerInterface
     }
 
     /**
-     * {@inheritdoc}
-     *
-     * @return $this
-     */
-    public function setContainer( ContainerInterface $container = null )
-    {
-        $this->_container = $container;
-
-        return $this;
-    }
-
-    /**
      * Sets a service.
      *
      * @param string $id      The service identifier
@@ -313,148 +276,9 @@ class AppBuilder implements ContainerInterface
      */
     public function set( $id, $service, $scope = self::SCOPE_CONTAINER )
     {
-        $this->_container->set( $id, $service, $scope );
+        parent::set( $id, $service, $scope );
 
         return $this;
     }
 
-    /**
-     * Gets a service.
-     *
-     * @param string $id              The service identifier
-     * @param int    $invalidBehavior The behavior when the service does not exist
-     *
-     * @return object The associated service
-     *
-     * @throws InvalidArgumentException if the service is not defined
-     * @throws ServiceCircularReferenceException When a circular reference is detected
-     * @throws ServiceNotFoundException When the service is not defined
-     *
-     * @see Reference
-     *
-     * @api
-     */
-    public function get( $id, $invalidBehavior = self::EXCEPTION_ON_INVALID_REFERENCE )
-    {
-        return $this->_container->get( $id, $invalidBehavior );
-    }
-
-    /**
-     * Returns true if the given service is defined.
-     *
-     * @param string $id The service identifier
-     *
-     * @return bool    true if the service is defined, false otherwise
-     *
-     * @api
-     */
-    public function has( $id )
-    {
-        return $this->_container->has( $id );
-    }
-
-    /**
-     * Checks if a parameter exists.
-     *
-     * @param string $name The parameter name
-     *
-     * @return bool    The presence of parameter in container
-     *
-     * @api
-     */
-    public function hasParameter( $name )
-    {
-        return $this->_container->hasParameter( $name );
-    }
-
-    /**
-     * Sets a parameter.
-     *
-     * @param string $name  The parameter name
-     * @param mixed  $value The parameter value
-     *
-     * @api
-     * @return $this
-     */
-    public function setParameter( $name, $value )
-    {
-        $this->_container->setParameter( $name, $value );
-
-        return $this;
-    }
-
-    /**
-     * Enters the given scope
-     *
-     * @param string $name
-     *
-     * @api
-     * @return $this
-     */
-    public function enterScope( $name )
-    {
-        $this->_container->enterScope( $name );
-
-        return $this;
-    }
-
-    /**
-     * Leaves the current scope, and re-enters the parent scope
-     *
-     * @param string $name
-     *
-     * @api
-     * @return $this
-     */
-    public function leaveScope( $name )
-    {
-        $this->_container->leaveScope( $name );
-
-        return $this;
-    }
-
-    /**
-     * Adds a scope to the container
-     *
-     * @param ScopeInterface $scope
-     *
-     * @api
-     * @return $this
-     */
-    public function addScope( ScopeInterface $scope )
-    {
-        $this->_container->addScope( $scope );
-
-        return $this;
-    }
-
-    /**
-     * Whether this container has the given scope
-     *
-     * @param string $name
-     *
-     * @return bool
-     *
-     * @api
-     */
-    public function hasScope( $name )
-    {
-        return $this->_container->hasScope( $name );
-    }
-
-    /**
-     * Determines whether the given scope is currently active.
-     *
-     * It does however not check if the scope actually exists.
-     *
-     * @param string $name
-     *
-     * @return bool
-     *
-     * @api
-     */
-    public function isScopeActive( $name )
-    {
-        return $this->_container->isScopeActive( $name );
-    }
 }

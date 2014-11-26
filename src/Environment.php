@@ -2,16 +2,30 @@
 namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseDefaults;
-use DreamFactory\Library\Enterprise\Storage\Enums\EnterprisePaths;
 use DreamFactory\Library\Enterprise\Storage\Resolver;
+use DreamFactory\Library\Utility\Interfaces\EnvironmentProviderLike;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Contains helpers that discover information about the current runtime environment
  */
-class Environment extends EnterpriseDefaults
+class Environment extends ParameterBag implements EnvironmentProviderLike, ContainerAwareInterface
 {
+    //******************************************************************************
+    //* Constants
+    //******************************************************************************
+
+    /** @type string */
+    const KEY_HOSTED_INSTANCE = 'environment.hosted_instance';
+    /** @type array A list of root directories to use */
+    const KEY_VALID_ROOTS = 'environment.valid_roots';
+    /** @type array A list of additional root directories to use */
+    const KEY_ADDITIONAL_ROOTS = 'environment.additional_roots';
+
     //******************************************************************************
     //* Members
     //******************************************************************************
@@ -24,29 +38,38 @@ class Environment extends EnterpriseDefaults
      * @type Response
      */
     protected $_response;
+    /**
+     * @type ContainerInterface
+     */
+    protected $_container;
 
     //******************************************************************************
     //* Methods
     //******************************************************************************
 
-    /**
-     * @param Request  $request
-     * @param Response $response
-     */
-    public function __construct( Request $request = null, Response $response = null )
+    /** @inheritdoc */
+    public function __construct( array $settings = array() )
     {
-        $this->_request = $request ?: $this->getRequest();
-        $this->_response = $response ?: $this->getResponse();
+        $this->_request = IfSet::get( $settings, 'request', Request::createFromGlobals() );
+        $this->_response = IfSet::get( $settings, 'response', Response::create() );
+        $this->_container = null;
+
+        parent::__construct( $settings );
     }
 
-    /**
-     * Try a variety of cross platform methods to determine the current user
-     *
-     * @return bool|string
-     */
+    /** @inheritdoc */
     public function getUserName()
     {
+        $_key = static::KEY_USER_NAME;
+
+        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        {
+            return $_value;
+        }
+
         //  List of places to get users in order
+        $_value = null;
+
         $_users = array(
             getenv( 'USER' ),
             isset( $_SERVER, $_SERVER['USER'] ) ? $_SERVER['USER'] : false,
@@ -57,116 +80,109 @@ class Environment extends EnterpriseDefaults
         {
             if ( !empty( $_user ) )
             {
-                return $_user;
+                $_value = $_user;
+                break;
             }
         }
 
-        throw new \LogicException( 'Cannot determine current user name.' );
+        if ( empty( $_value ) )
+        {
+            throw new \LogicException( 'Cannot determine current user name.' );
+        }
+
+        $this->set( $_key, $_value );
+
+        return $_value;
     }
 
-    /**
-     * Determine the host name of this machine. First HTTP_HOST is used from PHP $_SERVER if available. Otherwise the
-     * PHP gethostname() call is used.
-     *
-     * @param bool $checkServer If false, the $_SERVER variable is not checked.
-     * @param bool $fqdn        If true, the fully qualified domain name is returned. Otherwise just the first portion.
-     *
-     * @return string
-     */
-    public function getHostname( $checkServer = true, $fqdn = true )
+    /** @inheritdoc */
+    public function getHostname( $fqdn = true )
     {
+        $_key = static::KEY_HOSTNAME;
+
+        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        {
+            return $_value;
+        }
+
         //	Figure out my name
-        if ( $checkServer && isset( $_SERVER, $_SERVER['HTTP_HOST'] ) )
+        $_value = $this->getRequest()->getHttpHost();
+
+        if ( empty( $_value ) )
         {
-            $_hostname = $_SERVER['HTTP_HOST'];
-        }
-        else
-        {
-            $_hostname = gethostname();
+            $_value = gethostname();
         }
 
-        $_parts = explode( '.', $_hostname );
+        $_parts = explode( '.', $_value );
+        $_value = $fqdn ? $_value : ( count( $_parts ) ? $_parts[0] : $_value );
 
-        return
-            $fqdn
-                ? $_hostname
-                : ( count( $_parts ) ? $_parts[0] : $_hostname );
+        $this->set( $_key, $_value );
+        $this->set( $_key . '.parts', $_parts );
+
+        return $_value;
     }
 
-    /**
-     * Gets a temporary path suitable for writing by the current user...
-     *
-     * @param string $subPath The sub-directory of the temporary path created that is required
-     *
-     * @return bool|string
-     */
+    /** @inheritdoc */
     public function getTempPath( $subPath = null )
     {
-        return FileSystem::ensurePath( sys_get_temp_dir() . DIRECTORY_SEPARATOR . ltrim( $subPath, DIRECTORY_SEPARATOR ) );
+        $_key = static::KEY_TEMP_PATH;
+
+        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        {
+            return $_value;
+        }
+
+        $_value = FileSystem::ensurePath( sys_get_temp_dir() . DIRECTORY_SEPARATOR . ltrim( $subPath, DIRECTORY_SEPARATOR ) );
+
+        $this->set( $_key, $_value );
+
+        return $_value;
     }
 
-    /**
-     * Returns a SHA256 hash of a string that can be used as a key for caching
-     *
-     * @param string|int $entropy   Any additional entropy to add to the concatenation before hashing
-     * @param string     $algorithm The algorithm to use when hashing. Defaults to SHA256
-     *
-     * @return string
-     */
-    public function createRequestId( $entropy = null, $algorithm = 'sha256' )
+    /** @inheritdoc */
+    public function getRequestId( $algorithm = EnterpriseDefaults::DEFAULT_DATA_STORAGE_HASH, $entropy = null )
     {
-        $_hostname = static::getHostname();
+        $_hostname = $this->getHostname();
 
         return hash(
             $algorithm,
-            PHP_SAPI .
-            '_' .
-            IfSet::get( $_SERVER, 'REMOTE_ADDR', $_hostname ) .
-            '_' .
-            $_hostname .
-            ( $entropy ? '_' . $entropy : null )
+            PHP_SAPI . '_' .
+            $this->get( 'request' )->server->get( 'remote-addr', $_hostname ) . '_' .
+            $_hostname . ( $entropy ? '_' . $entropy : null )
         );
     }
 
-    /**
-     * Locates the installed DSP's base directory
-     *
-     * @param string $startPath
-     *
-     * @return string|bool The absolute path to the platform installation. False if not found
-     */
-    public function locatePlatformBasePath( $startPath = null )
+    /** @inheritdoc */
+    public function getInstallPath( $startPath = null, $useFileDir = false )
     {
-        //  Start path given or this file's directory
-        $_path = $startPath ?: __DIR__;
+        $_key = static::KEY_INSTALL_PATH;
+
+        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        {
+            return $_value;
+        }
+
+        $_path = $startPath ?: ( $useFileDir ? __DIR__ : getcwd() );
 
         while ( true )
         {
-            $_path = rtrim( $_path, ' /' );
-
-            //  Vendor and autoload?
-            if ( file_exists( $_path . static::COMPOSER_MARKER ) )
-            {
-                break;
-            }
-
-            //  Installation root?
-            if ( file_exists( $_path . static::INSTALL_ROOT_MARKER ) &&
-                is_dir( $_path . EnterprisePaths::STORAGE_PATH . EnterprisePaths::PRIVATE_STORAGE_PATH )
+            if ( file_exists( $_path . DIRECTORY_SEPARATOR . 'composer.json' ) &&
+                is_dir( $_path . DIRECTORY_SEPARATOR . 'vendor' )
             )
             {
+                $this->set( $_key, $_path );
                 break;
             }
 
-            //  Too low, go up a level
             $_path = dirname( $_path );
 
-            //	If we get to the root, ain't no DSP...
-            if ( '/' == $_path || empty( $_path ) )
+            if ( empty( $_path ) || $_path == DIRECTORY_SEPARATOR )
             {
-                return false;
+                throw new \RuntimeException( 'Platform installation path not found.' );
             }
         }
+
+        $this->set( $_key, $_path );
 
         return $_path;
     }
@@ -176,14 +192,29 @@ class Environment extends EnterpriseDefaults
      */
     public function isHosted()
     {
-        static $_hostedInstance = null;
-        static $_validRoots = array(EnterpriseDefaults::DEFAULT_DOC_ROOT, EnterpriseDefaults::DEFAULT_DEV_DOC_ROOT);
+        $_key = static::KEY_HOSTED_INSTANCE;
 
-        return
-            $_hostedInstance = $_hostedInstance
-                ?:
-                in_array( IfSet::get( $_SERVER, 'DOCUMENT_ROOT' ), $_validRoots ) &&
-                ( file_exists( EnterpriseDefaults::FABRIC_MARKER ) || file_exists( EnterpriseDefaults::ENTERPRISE_MARKER ) );
+        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        {
+            return $_value;
+        }
+
+        $_request = $this->getRequest();
+
+        $_validRoots = array_merge(
+            array(
+                EnterpriseDefaults::DEFAULT_DOC_ROOT,
+                EnterpriseDefaults::DEFAULT_DEV_DOC_ROOT
+            ),
+            $this->getOrDefault( static::KEY_ADDITIONAL_ROOTS, array() )
+        );
+
+        $_hostedInstance = in_array( $_request->server->get( 'document-root' ), $_validRoots ) &&
+            ( file_exists( EnterpriseDefaults::FABRIC_MARKER ) || file_exists( EnterpriseDefaults::ENTERPRISE_MARKER ) );
+
+        $this->set( $_key, $_hostedInstance );
+
+        return $_hostedInstance;
     }
 
     /**
@@ -195,28 +226,32 @@ class Environment extends EnterpriseDefaults
      */
     public function locateZone( $zone = null, $partitioned = false )
     {
-        if ( !empty( $zone ) )
-        {
-            return $zone;
-        }
+        $_key = static::KEY_ZONE;
 
+        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        {
+            return $_value;
+        }
         //  Zones only apply to partitioned layouts
         if ( !$partitioned )
         {
-            return false;
+            $_zone = false;
         }
-
-        //  Try ec2...
-        $_url = getenv( 'EC2_URL' ) ?: Resolver::DEBUG_ZONE_URL;
-
-        //  Not on EC2, we're something else
-        if ( empty( $_url ) )
+        else
         {
-            return false;
-        }
+            //  Try ec2...
+            $_url = getenv( 'EC2_URL' ) ?: Resolver::DEBUG_ZONE_URL;
 
-        //  Get the EC2 zone of this instance from the url
-        $_zone = str_ireplace( array('https://', '.amazonaws.com'), null, $_url );
+            //  Not on EC2, we're something else
+            if ( empty( $_url ) )
+            {
+                return false;
+            }
+
+            //  Get the EC2 zone of this instance from the url
+            $_zone = str_ireplace( array('https://', '.amazonaws.com'), null, $_url );
+            $this->set( $_key, $_zone );
+        }
 
         return $_zone;
     }
@@ -236,33 +271,29 @@ class Environment extends EnterpriseDefaults
     }
 
     /**
-     * Locates the installation root of DSP
+     * @param string $yes Optional string to return if in PHP_SAPI is 'cli'
+     * @param string $no  Optional string to return if in PHP_SAPI is NOT 'cli'
      *
-     * @param string $start
-     *
-     * @return string
-     * @todo convert to resource locator
+     * @return string|bool
      */
-    public function locateInstallRoot( $start = null )
+    public function cli( $yes = null, $no = null )
     {
-        $_path = $start ?: getcwd();
+        return 'cli' === PHP_SAPI ? ( $yes ?: true ) : ( $no ?: false );
+    }
 
-        while ( true )
+    /**
+     * @return Resolver
+     */
+    public function getResolver()
+    {
+        if ( $this->_container &&
+            null !== ( $_resolver = $this->_container->get( 'resolver', ContainerInterface::NULL_ON_INVALID_REFERENCE ) )
+        )
         {
-            if ( file_exists( $_path . DIRECTORY_SEPARATOR . 'composer.json' ) && is_dir( $_path . DIRECTORY_SEPARATOR . 'vendor' ) )
-            {
-                break;
-            }
-
-            $_path = dirname( $_path );
-
-            if ( empty( $_path ) || $_path == DIRECTORY_SEPARATOR )
-            {
-                throw new \RuntimeException( 'Platform installation path not found.' );
-            }
+            return $_resolver;
         }
 
-        return $_path;
+        throw new \RuntimeException( 'No value for "storage resolver" has been set.' )
     }
 
     /**
@@ -270,43 +301,55 @@ class Environment extends EnterpriseDefaults
      */
     public function getRequest()
     {
-        return $this->_request ?: $this->_request = Request::createFromGlobals();
+        return $this->_request;
     }
 
     /**
-     * @param Request $request
-     *
-     * @return Environment
-     */
-    public function setRequest( $request )
-    {
-        $this->_request = $request;
-
-        return $this;
-    }
-
-    /**
-     * @param mixed $content
-     * @param int   $status
-     * @param array $headers
-     *
      * @return Response
      */
-    public function getResponse( $content = null, $status = 200, $headers = array() )
+    public function getResponse()
     {
-        return $this->_response ?: $this->_response = Response::create( $content, $status, $headers );
+        return $this->_response;
     }
 
     /**
-     * @param Response $response
-     *
-     * @return Environment
+     * @inheritdoc
+     * @return $this
      */
-    public function setResponse( $response )
+    public function setContainer( ContainerInterface $container = null )
     {
-        $this->_response = $response;
+        $this->_container = $container;
 
         return $this;
     }
 
+    /**
+     * @param string $key
+     * @param mixed  $defaultValue
+     * @param bool   $remove
+     *
+     * @return bool|mixed
+     */
+    public function getOrDefault( $key, $defaultValue = null, $remove = false )
+    {
+        $_value = $this->has( $key ) ? $this->get( $key ) : $defaultValue;
+        $remove && $this->remove( $key );
+
+        return $_value;
+    }
+
+    /**
+     * Override of set() that returns $this
+     *
+     * @param string $name
+     * @param mixed  $value
+     *
+     * @return $this
+     */
+    public function set( $name, $value )
+    {
+        parent::set( $name, $value );
+
+        return $this;
+    }
 }
