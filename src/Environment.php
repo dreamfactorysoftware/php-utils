@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseDefaults;
-use DreamFactory\Library\Enterprise\Storage\Resolver;
 use DreamFactory\Library\Utility\Interfaces\EnvironmentProviderLike;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -293,7 +291,7 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
             return $_resolver;
         }
 
-        throw new \RuntimeException( 'No value for "storage resolver" has been set.' )
+        throw new \RuntimeException( 'No value for "storage resolver" has been set.' );
     }
 
     /**
