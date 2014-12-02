@@ -13,7 +13,8 @@
     "minimum-stability": "stable",
     "require": {
         "kisma/kisma": "*",
-        "symfony/dependency-injection": "*"
+        "symfony/dependency-injection": "*",
+        "dreamfactory/enterprise-storage": "dev-develop as dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "*"
