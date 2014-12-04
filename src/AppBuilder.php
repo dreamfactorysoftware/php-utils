@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use DreamFactory\Library\Enterprise\Storage\Resolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
@@ -78,12 +77,6 @@ class AppBuilder extends ContainerBuilder
         $this
             ->register( 'environment', 'DreamFactory\\Library\\Utility\\Environment' )
             ->addArgument( '%environment.settings%' );
-
-        //  Storage resolver if we don't have one...
-        $this->register( 'resolver', 'DreamFactory\\Library\\Enterprise\\Storage\\Resolver' )
-            ->addArgument( '%resolver.hostname%' )
-            ->addArgument( '%resolver.mount_point%' )
-            ->addArgument( '%resolver.install_root%' );
 
         //  Create a logger if there isn't one
         if ( !$this->has( 'logger' ) )
@@ -172,7 +165,7 @@ class AppBuilder extends ContainerBuilder
         }
 
         //  Try ec2...
-        $_url = getenv( 'EC2_URL' ) ?: Resolver::DEBUG_ZONE_URL;
+        $_url = getenv( 'EC2_URL' ) ?: null;/*Resolver::DEBUG_ZONE_URL;*/
 
         //  Not on EC2, we're something else
         if ( empty( $_url ) )

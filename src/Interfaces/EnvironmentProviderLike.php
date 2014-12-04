@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Library\Utility\Interfaces;
 
-use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseDefaults;
-
 /**
  * An object that can provide certain runtime environment details
  *
@@ -48,7 +46,7 @@ interface EnvironmentProviderLike
      *
      * @return string
      */
-    public function getRequestId( $algorithm = EnterpriseDefaults::DEFAULT_DATA_STORAGE_HASH, $entropy = null );
+    public function getRequestId( $algorithm = 'sha256', $entropy = null );
 
     /**
      * Determine the host name of this machine. First HTTP_HOST is used from PHP $_SERVER if available. Otherwise the

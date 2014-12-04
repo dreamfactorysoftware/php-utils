@@ -23,6 +23,10 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     const KEY_VALID_ROOTS = 'environment.valid_roots';
     /** @type array A list of additional root directories to use */
     const KEY_ADDITIONAL_ROOTS = 'environment.additional_roots';
+    /**
+     * @type string Hash algorithm to use for partitioning
+     */
+    const DEFAULT_DATA_STORAGE_HASH = 'sha256';
 
     //******************************************************************************
     //* Members
@@ -138,7 +142,7 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     }
 
     /** @inheritdoc */
-    public function getRequestId( $algorithm = EnterpriseDefaults::DEFAULT_DATA_STORAGE_HASH, $entropy = null )
+    public function getRequestId( $algorithm = self::DEFAULT_DATA_STORAGE_HASH, $entropy = null )
     {
         $_hostname = $this->getHostname();
 
@@ -186,36 +190,6 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     }
 
     /**
-     * @return bool True if this uses hosted/shared storage
-     */
-    public function isHosted()
-    {
-        $_key = static::KEY_HOSTED_INSTANCE;
-
-        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
-        {
-            return $_value;
-        }
-
-        $_request = $this->getRequest();
-
-        $_validRoots = array_merge(
-            array(
-                EnterpriseDefaults::DEFAULT_DOC_ROOT,
-                EnterpriseDefaults::DEFAULT_DEV_DOC_ROOT
-            ),
-            $this->getOrDefault( static::KEY_ADDITIONAL_ROOTS, array() )
-        );
-
-        $_hostedInstance = in_array( $_request->server->get( 'document-root' ), $_validRoots ) &&
-            ( file_exists( EnterpriseDefaults::FABRIC_MARKER ) || file_exists( EnterpriseDefaults::ENTERPRISE_MARKER ) );
-
-        $this->set( $_key, $_hostedInstance );
-
-        return $_hostedInstance;
-    }
-
-    /**
      * @param string $zone
      * @param bool   $partitioned
      *
@@ -226,10 +200,11 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     {
         $_key = static::KEY_ZONE;
 
-        if ( null !== ( $_value = $this->getOrDefault( $_key ) ) )
+        if ( null !== ( $_value = $zone ?: $this->getOrDefault( $_key ) ) )
         {
             return $_value;
         }
+
         //  Zones only apply to partitioned layouts
         if ( !$partitioned )
         {
@@ -238,7 +213,7 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
         else
         {
             //  Try ec2...
-            $_url = getenv( 'EC2_URL' ) ?: Resolver::DEBUG_ZONE_URL;
+            $_url = getenv( 'EC2_URL' ) ?: null;
 
             //  Not on EC2, we're something else
             if ( empty( $_url ) )
@@ -277,21 +252,6 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     public function cli( $yes = null, $no = null )
     {
         return 'cli' === PHP_SAPI ? ( $yes ?: true ) : ( $no ?: false );
-    }
-
-    /**
-     * @return Resolver
-     */
-    public function getResolver()
-    {
-        if ( $this->_container &&
-            null !== ( $_resolver = $this->_container->get( 'resolver', ContainerInterface::NULL_ON_INVALID_REFERENCE ) )
-        )
-        {
-            return $_resolver;
-        }
-
-        throw new \RuntimeException( 'No value for "storage resolver" has been set.' );
     }
 
     /**
