@@ -12,11 +12,10 @@
     ],
     "minimum-stability": "stable",
     "require":           {
-        "kisma/kisma":                  "*",
         "symfony/dependency-injection": "*"
     },
     "require-dev":       {
-        "phpunit/phpunit": "*"
+        "phpunit/phpunit": "@stable"
     },
     "autoload":          {
         "psr-4": {
