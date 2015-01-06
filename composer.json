@@ -1,28 +1,29 @@
 {
-    "name": "dreamfactory/php-utils",
-    "description": "A library of helper classes for PHP",
-    "homepage": "https://www.dreamfactory.com/",
-    "keywords": ["utility", "console", "dreamfactory"],
-    "license": ["Apache-2.0"],
-    "authors": [
+    "name":              "dreamfactory/php-utils",
+    "description":       "A library of helper classes for PHP",
+    "homepage":          "https://www.dreamfactory.com/",
+    "keywords":          ["utility", "console", "dreamfactory"],
+    "license":           ["Apache-2.0"],
+    "authors":           [
         {
-            "name": "Jerry Ablan",
+            "name":  "Jerry Ablan",
             "email": "jerryablan@dreamfactory.com"
         }
     ],
     "minimum-stability": "stable",
-    "require": {
-        "kisma/kisma": "*"
+    "require":           {
+        "symfony/dependency-injection": "*",
+        "symfony/http-foundation":      "*"
     },
-    "require-dev": {
-        "phpunit/phpunit": "*"
+    "require-dev":       {
+        "phpunit/phpunit": "@stable"
     },
-    "autoload": {
+    "autoload":          {
         "psr-4": {
             "DreamFactory\\Library\\Utility\\": "src/"
         }
     },
-    "extra": {
+    "extra":             {
         "branch-alias": {
             "dev-develop": "1.0.x-dev"
         }

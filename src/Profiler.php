@@ -1,8 +1,7 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
-use Kisma\Core\Enums\DateTime;
-use Kisma\Core\Utility\Log;
+use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
 
 /**
  * Profiler includes
@@ -105,7 +104,7 @@ class Profiler
                 'url'      => '/xhprof/index.php?run=' . $_runId . '&source=' . $_runName,
             );
 
-            Log::debug( '~!~ profiler link: ' . static::$_profiles[$id]['xhprof']['url'] );
+            error_log( '~!~ profiler link: ' . static::$_profiles[$id]['xhprof']['url'] );
         }
 
         return
@@ -201,9 +200,9 @@ class Profiler
     public static function elapsedAsString( $start, $stop = false )
     {
         static $_divisors = array(
-            'h' => DateTime::US_PER_HOUR,
-            'm' => DateTime::US_PER_MINUTE,
-            's' => DateTime::US_PER_SECOND,
+            'h' => DateTimeIntervals::US_PER_HOUR,
+            'm' => DateTimeIntervals::US_PER_MINUTE,
+            's' => DateTimeIntervals::US_PER_SECOND,
         );
 
         $_ms = round( ( false === $stop ? $start : ( $stop - $start ) ) * 1000 );
