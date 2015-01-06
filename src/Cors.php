@@ -2,7 +2,6 @@
 namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
-use Kisma\Core\Utility\Scalar;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 

@@ -1,10 +1,9 @@
 <?php
 namespace DreamFactory\Library\Utility;
 
+use DreamFactory\Library\Enterprise\Storage\Enums\EnterpriseDefaults;
+use DreamFactory\Library\Enterprise\Storage\MountResolver;
 use DreamFactory\Library\Utility\Interfaces\EnvironmentProviderLike;
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -238,7 +237,7 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
         else
         {
             //  Try ec2...
-            $_url = getenv( 'EC2_URL' ) ?: Resolver::DEBUG_ZONE_URL;
+            $_url = getenv( 'EC2_URL' ) ?: MountResolver::DEBUG_ZONE_URL;
 
             //  Not on EC2, we're something else
             if ( empty( $_url ) )
@@ -280,7 +279,7 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     }
 
     /**
-     * @return Resolver
+     * @return MountResolver
      */
     public function getResolver()
     {
