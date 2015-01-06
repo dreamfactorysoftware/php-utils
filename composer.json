@@ -12,7 +12,8 @@
     ],
     "minimum-stability": "stable",
     "require":           {
-        "symfony/dependency-injection": "*"
+        "symfony/dependency-injection": "*",
+        "symfony/http-foundation":      "*"
     },
     "require-dev":       {
         "phpunit/phpunit": "@stable"

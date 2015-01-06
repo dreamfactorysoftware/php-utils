@@ -255,6 +255,21 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     }
 
     /**
+     * @return Resolver
+     */
+    public function getResolver()
+    {
+        if ( $this->_container &&
+            null !== ( $_resolver = $this->_container->get( 'resolver', ContainerInterface::NULL_ON_INVALID_REFERENCE ) )
+        )
+        {
+            return $_resolver;
+        }
+
+        throw new \RuntimeException( 'No value for "storage resolver" has been set.' );
+    }
+
+    /**
      * @return Request
      */
     public function getRequest()

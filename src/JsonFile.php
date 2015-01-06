@@ -3,7 +3,6 @@ namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Exceptions\FileException;
 use DreamFactory\Library\Utility\Exceptions\FileSystemException;
-use Kisma\Core\Utility\Log;
 
 /**
  * Reads/writes a json file
@@ -183,7 +182,7 @@ class JsonFile
         {
             if ( false === @copy( $file, $_fileCopy ) )
             {
-                Log::notice( 'Could not make copy of existing file to "' . $_fileCopy . '"' );
+                throw new \RuntimeException( 'Could not make copy of existing file to "' . $_fileCopy . '"' );
             }
         }
 
