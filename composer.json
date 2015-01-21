@@ -10,7 +10,7 @@
             "email": "jerryablan@dreamfactory.com"
         }
     ],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "require":           {
         "symfony/dependency-injection": "*",
         "symfony/http-foundation":      "*"
