@@ -23,6 +23,59 @@ namespace DreamFactory\Library\Utility;
 class ArrayUtils
 {
     /**
+     * @param array|\ArrayObject $target            Target to grab $key from
+     * @param string             $key               Index into target to retrieve
+     * @param mixed              $defaultValue      Value returned if $key is not in $target
+     * @param bool               $emptyStringIsNull If true, and the result is an empty string (''), NULL is returned
+     *
+     * @return mixed
+     */
+    public static function get( array $target, $key, $defaultValue = null, $emptyStringIsNull = false )
+    {
+        $_result = is_array( $target ) ? ( array_key_exists( $key, $target ) ? $target[$key] : $defaultValue ) : $defaultValue;
+
+        return $emptyStringIsNull && '' === $_result ? null : $_result;
+    }
+
+    /**
+     * @param array|\ArrayObject $target Target to set $key in
+     * @param string             $key    Index into target to retrieve
+     * @param mixed              $value  The value to set
+     */
+    public static function set( array & $target, $key, $value = null )
+    {
+        is_array( $target ) && $target[$key] = $value;
+    }
+
+    /**
+     * @param array|\ArrayObject $target Target to set $key in
+     * @param string             $key    Index into target to retrieve
+     *
+     * @return bool True if key existed and was removed
+     */
+    public static function remove( array & $target, $key )
+    {
+        if ( static::has( $target, $key ) )
+        {
+            unset( $target[$key] );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array|\ArrayObject $target Target to check
+     * @param string             $key    Key to check
+     *
+     * @return bool
+     */
+    public static function has( array $target, $key )
+    {
+        return is_array( $target ) && array_key_exists( $key, $target );
+    }
+    /**
      * A recursive array_change_key_case lowercase function.
      *
      * @param array $input
