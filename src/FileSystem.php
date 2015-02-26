@@ -2,12 +2,17 @@
 namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\GlobFlags;
+use DreamFactory\Library\Utility\Exceptions\FileSystemException;
 
 /**
  * Down and dirty file utility class with a sprinkle of awesomeness
  */
 class FileSystem
 {
+    //******************************************************************************
+    //* Methods
+    //******************************************************************************
+
     /**
      * Builds a path from arguments and validates existence.
      *
@@ -19,6 +24,7 @@ class FileSystem
      * @param string $part          One or more directory parts to assemble
      *
      * @return bool|string Returns the created path or false if non-existent
+     * @deprecated because it sucks. Bool or string? WTF. Use static::buildPath() instead.
      */
     public static function makePath( $createMissing = true, $part = null )
     {
@@ -199,5 +205,37 @@ class FileSystem
         @chmod( $path, 02775 );
 
         return true;
+    }
+
+    /**
+     * Builds a path from arguments and validates existence.
+     *
+     *      $_path = FileSystem::buildPath(['path','to','my','stuff'], true);
+     *
+     *      The result is "/path/to/my/stuff"
+     *
+     * @param array $parts  The segments of the path to build
+     * @param bool  $create If true, and result path doesn't exist, it will be created
+     * @param int   $mode   The octal mode for creating new directories
+     *
+     * @return string Returns the created path
+     */
+    public static function buildPath( array $parts, $create = true, $mode = 0777 )
+    {
+        $_path = null;
+
+        foreach ( $parts as $_part )
+        {
+            !empty( $_part ) && $_path .= DIRECTORY_SEPARATOR . trim( $_part, DIRECTORY_SEPARATOR . ' ' );
+        }
+
+        $_path = realpath( $_path );
+
+        if ( $create && !static::ensurePath( $_path, $mode ) )
+        {
+            throw new FileSystemException( 'Error while creating directory "' . $_path . '".' );
+        }
+
+        return $_path;
     }
 }
