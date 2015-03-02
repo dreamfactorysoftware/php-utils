@@ -17,11 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Platform\Utility;
+namespace DreamFactory\Library\Utility;
 
-use DreamFactory\Platform\Exceptions\NotFoundException;
-use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\Option;
 
 /**
  * FileUtils
@@ -115,65 +112,65 @@ class FileUtils
         return true;
     }
 
-    /**
-     * @param string $url
-     * @param string $name name of the temporary file to create
-     *
-     * @throws NotFoundException
-     * @throws \Exception
-     * @return string temporary file path
-     */
-    public static function importUrlFileToTemp( $url, $name = '' )
-    {
-        if ( static::url_exist( $url ) )
-        {
-            $readFrom = @fopen( $url, 'rb' );
-            if ( $readFrom )
-            {
-                $directory = rtrim( sys_get_temp_dir(), DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
-//				$ext = FileUtils::getFileExtension( basename( $url ) );
-//              $validTypes = array( 'zip', 'dfpkg' ); // default zip and package extensions
-//              if ( !in_array( $ext, $validTypes ) )
-//				{
-//                  throw new Exception( 'Invalid file type. Currently only URLs to repository zip files are accepted.' );
-//              }
-                if ( empty( $name ) )
-                {
-                    $name = basename( $url );
-                }
-                $newFile = $directory . $name;
-                $writeTo = fopen( $newFile, 'wb' ); // creating new file on local server
-                if ( $writeTo )
-                {
-                    while ( !feof( $readFrom ) )
-                    {
-                        // Write the url file to the directory.
-                        fwrite(
-                            $writeTo,
-                            fread( $readFrom, 1024 * 8 ),
-                            1024 * 8
-                        ); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
-                    }
-                    fclose( $readFrom );
-                    fclose( $writeTo );
-
-                    return $newFile;
-                }
-                else
-                {
-                    throw new \Exception( "Could not establish new file ($directory$name) on local server." );
-                }
-            }
-            else
-            {
-                throw new \Exception( "Could not read the file: $url" );
-            }
-        }
-        else
-        {
-            throw new NotFoundException( 'Invalid URL entered. File not found.' );
-        }
-    }
+//    /**
+//     * @param string $url
+//     * @param string $name name of the temporary file to create
+//     *
+//     * @throws NotFoundException
+//     * @throws \Exception
+//     * @return string temporary file path
+//     */
+//    public static function importUrlFileToTemp( $url, $name = '' )
+//    {
+//        if ( static::url_exist( $url ) )
+//        {
+//            $readFrom = @fopen( $url, 'rb' );
+//            if ( $readFrom )
+//            {
+//                $directory = rtrim( sys_get_temp_dir(), DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+////				$ext = FileUtils::getFileExtension( basename( $url ) );
+////              $validTypes = array( 'zip', 'dfpkg' ); // default zip and package extensions
+////              if ( !in_array( $ext, $validTypes ) )
+////				{
+////                  throw new Exception( 'Invalid file type. Currently only URLs to repository zip files are accepted.' );
+////              }
+//                if ( empty( $name ) )
+//                {
+//                    $name = basename( $url );
+//                }
+//                $newFile = $directory . $name;
+//                $writeTo = fopen( $newFile, 'wb' ); // creating new file on local server
+//                if ( $writeTo )
+//                {
+//                    while ( !feof( $readFrom ) )
+//                    {
+//                        // Write the url file to the directory.
+//                        fwrite(
+//                            $writeTo,
+//                            fread( $readFrom, 1024 * 8 ),
+//                            1024 * 8
+//                        ); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
+//                    }
+//                    fclose( $readFrom );
+//                    fclose( $writeTo );
+//
+//                    return $newFile;
+//                }
+//                else
+//                {
+//                    throw new \Exception( "Could not establish new file ($directory$name) on local server." );
+//                }
+//            }
+//            else
+//            {
+//                throw new \Exception( "Could not read the file: $url" );
+//            }
+//        }
+//        else
+//        {
+//            throw new NotFoundException( 'Invalid URL entered. File not found.' );
+//        }
+//    }
 
     public static function sendFile( $file, $download = false )
     {
@@ -192,7 +189,7 @@ class FileUtils
         }
         else
         {
-            Log::debug( 'FileUtils::downloadFile is_file call fail: ' . $file );
+            //Log::debug( 'FileUtils::downloadFile is_file call fail: ' . $file );
 
             $_statusHeader = 'HTTP/1.1 404 The specified file ' . $file . ' does not exist.';
             header( $_statusHeader );
@@ -1237,7 +1234,7 @@ class FileUtils
             }
             else
             {
-                $mime = Option::get( $_mimeTypes, $ext );
+                $mime = ArrayUtils::get( $_mimeTypes, $ext );
             }
         }
         if ( empty( $mime ) )
