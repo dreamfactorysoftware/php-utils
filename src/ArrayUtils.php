@@ -38,6 +38,42 @@ class ArrayUtils
     }
 
     /**
+     * @param array|\ArrayAccess|object $options
+     * @param string                    $key
+     * @param string                    $subKey
+     * @param mixed                     $defaultValue      Only applies to target value
+     * @param boolean                   $unsetValue        If true, the $key will be removed from $options after
+     *                                                     retrieval
+     * @param bool                      $emptyStringIsNull If true, empty() values will always return as NULL
+     *
+     * @return mixed
+     */
+    public static function getDeep( &$options = array(), $key, $subKey, $defaultValue = null, $unsetValue = false, $emptyStringIsNull = false )
+    {
+        $_deep = static::get( $options, $key, array(), $unsetValue, $emptyStringIsNull );
+
+        return static::get( $_deep, $subKey, $defaultValue, $unsetValue, $emptyStringIsNull );
+    }
+
+    /**
+     * Retrieves a boolean option from the given array. $defaultValue is set and returned if $_key is not 'set'.
+     * Optionally will unset option in array.
+     *
+     * Returns TRUE for "1", "true", "on", "yes" and "y". Returns FALSE otherwise.
+     *
+     * @param array|\ArrayAccess|object $options
+     * @param string                    $key
+     * @param boolean                   $defaultValue Defaults to false
+     * @param boolean                   $unsetValue   If true, the $key will be removed from $options after retrieval
+     *
+     * @return mixed
+     */
+    public static function getBool( &$options = array(), $key, $defaultValue = false, $unsetValue = false )
+    {
+        return Scalar::boolval( static::get( $options, $key, $defaultValue, $unsetValue ) );
+    }
+
+    /**
      * @param array|\ArrayObject $target Target to set $key in
      * @param string             $key    Index into target to retrieve
      * @param mixed              $value  The value to set
@@ -376,4 +412,32 @@ class ArrayUtils
         return null;
     }
 
+    /**
+     * Ensures the argument passed in is actually an array with optional iteration callback
+     *
+     * @static
+     *
+     * @param array             $array
+     * @param callable|\Closure $callback
+     *
+     * @return array
+     */
+    public static function clean( $array = null, $callback = null )
+    {
+        $_result = ( empty( $array ) ? array() : ( !is_array( $array ) ? array($array) : $array ) );
+
+        if ( null === $callback || !is_callable( $callback ) )
+        {
+            return $_result;
+        }
+
+        $_response = array();
+
+        foreach ( $_result as $_item )
+        {
+            $_response[] = call_user_func( $callback, $_item );
+        }
+
+        return $_response;
+    }
 }
