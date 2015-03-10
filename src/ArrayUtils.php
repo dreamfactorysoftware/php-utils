@@ -38,21 +38,19 @@ class ArrayUtils
     }
 
     /**
-     * @param array|\ArrayAccess|object $options
-     * @param string                    $key
-     * @param string                    $subKey
-     * @param mixed                     $defaultValue      Only applies to target value
-     * @param boolean                   $unsetValue        If true, the $key will be removed from $options after
-     *                                                     retrieval
-     * @param bool                      $emptyStringIsNull If true, empty() values will always return as NULL
+     * @param array|\ArrayObject $options
+     * @param string             $key
+     * @param string             $subKey
+     * @param mixed              $defaultValue      Only applies to target value
+     * @param bool               $emptyStringIsNull If true, empty() values will always return as NULL
      *
      * @return mixed
      */
-    public static function getDeep( &$options = array(), $key, $subKey, $defaultValue = null, $unsetValue = false, $emptyStringIsNull = false )
+    public static function getDeep( array $options, $key, $subKey, $defaultValue = null, $emptyStringIsNull = false )
     {
-        $_deep = static::get( $options, $key, array(), $unsetValue, $emptyStringIsNull );
+        $_deep = static::get( $options, $key, array(), $emptyStringIsNull );
 
-        return static::get( $_deep, $subKey, $defaultValue, $unsetValue, $emptyStringIsNull );
+        return static::get( $_deep, $subKey, $defaultValue, $emptyStringIsNull );
     }
 
     /**
@@ -68,7 +66,7 @@ class ArrayUtils
      *
      * @return mixed
      */
-    public static function getBool( &$options = array(), $key, $defaultValue = false, $unsetValue = false )
+    public static function getBool( array $options, $key, $defaultValue = false, $unsetValue = false )
     {
         return Scalar::boolval( static::get( $options, $key, $defaultValue, $unsetValue ) );
     }
@@ -111,6 +109,7 @@ class ArrayUtils
     {
         return is_array( $target ) && array_key_exists( $key, $target );
     }
+
     /**
      * A recursive array_change_key_case lowercase function.
      *
@@ -186,38 +185,38 @@ class ArrayUtils
     /**
      * @param        $list
      * @param        $find
-     * @param string $delim
+     * @param string $delimiter
      * @param bool   $strict
      *
      * @return bool
      */
-    public static function isInList( $list, $find, $delim = ',', $strict = false )
+    public static function isInList( $list, $find, $delimiter = ',', $strict = false )
     {
-        return ( false !== array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict ) );
+        return ( false !== array_search( $find, array_map( 'trim', explode( $delimiter, strtolower( $list ) ) ), $strict ) );
     }
 
     /**
      * @param        $list
      * @param        $find
-     * @param string $delim
+     * @param string $delimiter
      * @param bool   $strict
      *
      * @return mixed
      */
-    public static function findInList( $list, $find, $delim = ',', $strict = false )
+    public static function findInList( $list, $find, $delimiter = ',', $strict = false )
     {
-        return array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict );
+        return array_search( $find, array_map( 'trim', explode( $delimiter, strtolower( $list ) ) ), $strict );
     }
 
     /**
      * @param        $list
      * @param        $find
-     * @param string $delim
+     * @param string $delimiter
      * @param bool   $strict
      *
      * @return string
      */
-    public static function addOnceToList( $list, $find, $delim = ',', $strict = false )
+    public static function addOnceToList( $list, $find, $delimiter = ',', $strict = false )
     {
         if ( empty( $list ) )
         {
@@ -225,36 +224,36 @@ class ArrayUtils
 
             return $list;
         }
-        $pos = array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict );
+        $pos = array_search( $find, array_map( 'trim', explode( $delimiter, strtolower( $list ) ) ), $strict );
         if ( false !== $pos )
         {
             return $list;
         }
-        $fieldarr = array_map( 'trim', explode( $delim, $list ) );
-        $fieldarr[] = $find;
+        $result = array_map( 'trim', explode( $delimiter, $list ) );
+        $result[] = $find;
 
-        return implode( $delim, array_values( $fieldarr ) );
+        return implode( $delimiter, array_values( $result ) );
     }
 
     /**
      * @param        $list
      * @param        $find
-     * @param string $delim
+     * @param string $delimiter
      * @param bool   $strict
      *
      * @return string
      */
-    public static function removeOneFromList( $list, $find, $delim = ',', $strict = false )
+    public static function removeOneFromList( $list, $find, $delimiter = ',', $strict = false )
     {
-        $pos = array_search( $find, array_map( 'trim', explode( $delim, strtolower( $list ) ) ), $strict );
+        $pos = array_search( $find, array_map( 'trim', explode( $delimiter, strtolower( $list ) ) ), $strict );
         if ( false === $pos )
         {
             return $list;
         }
-        $fieldarr = array_map( 'trim', explode( $delim, $list ) );
-        unset( $fieldarr[$pos] );
+        $result = array_map( 'trim', explode( $delimiter, $list ) );
+        unset( $result[$pos] );
 
-        return implode( $delim, array_values( $fieldarr ) );
+        return implode( $delimiter, array_values( $result ) );
     }
 
     /**+
@@ -424,7 +423,7 @@ class ArrayUtils
      */
     public static function clean( $array = null, $callback = null )
     {
-        $_result = ( empty( $array ) ? array() : ( !is_array( $array ) ? array($array) : $array ) );
+        $_result = ( empty( $array ) ? array() : ( !is_array( $array ) ? array( $array ) : $array ) );
 
         if ( null === $callback || !is_callable( $callback ) )
         {
