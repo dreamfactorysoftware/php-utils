@@ -55,20 +55,18 @@ class ArrayUtils
 
     /**
      * Retrieves a boolean option from the given array. $defaultValue is set and returned if $_key is not 'set'.
-     * Optionally will unset option in array.
      *
      * Returns TRUE for "1", "true", "on", "yes" and "y". Returns FALSE otherwise.
      *
-     * @param array|\ArrayAccess|object $options
+     * @param array|\ArrayAccess $options
      * @param string                    $key
      * @param boolean                   $defaultValue Defaults to false
-     * @param boolean                   $unsetValue   If true, the $key will be removed from $options after retrieval
      *
      * @return mixed
      */
-    public static function getBool( array $options, $key, $defaultValue = false, $unsetValue = false )
+    public static function getBool( array $options, $key, $defaultValue = false )
     {
-        return Scalar::boolval( static::get( $options, $key, $defaultValue, $unsetValue ) );
+        return Scalar::boolval( static::get( $options, $key, $defaultValue ) );
     }
 
     /**
