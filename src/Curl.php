@@ -2,6 +2,7 @@
 namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * Curl
@@ -202,6 +203,10 @@ class Curl extends Verbs
      */
     protected static function _httpRequest( $method = self::GET, $url, $payload = array(), $curlOptions = array() )
     {
+        if ( !static::contains( $method ) )
+        {
+            throw new \InvalidArgumentException( 'Invalid method "' . $method . '" specified.' );
+        }
         //	Reset!
         static::$_lastResponseHeaders = static::$_lastHttpCode = static::$_error = static::$_info = $_tmpFile = null;
 
@@ -291,7 +296,7 @@ class Curl extends Verbs
         $_result = curl_exec( $_curl );
 
         static::$_info = curl_getinfo( $_curl );
-        static::$_lastHttpCode = IfSet::get( static::$_info, 'http_code' );
+        static::$_lastHttpCode = ArrayUtils::get( static::$_info, 'http_code' );
         static::$_responseHeaders = curl_getinfo( $_curl, CURLINFO_HEADER_OUT );
         static::$_responseHeadersSize = curl_getinfo( $_curl, CURLINFO_HEADER_SIZE );
 
@@ -355,7 +360,7 @@ class Curl extends Verbs
             }
 
             //	Attempt to auto-decode inbound JSON
-            if ( !empty( $_result ) && false !== stripos( IfSet::get( static::$_info, 'content_type' ), 'application/json', 0 ) )
+            if ( !empty( $_result ) && false !== stripos( ArrayUtils::get( static::$_info, 'content_type' ), 'application/json', 0 ) )
             {
                 try
                 {
@@ -455,7 +460,7 @@ class Curl extends Verbs
      */
     public static function getInfo( $key = null, $defaultValue = null )
     {
-        return null === $key ? static::$_info : IfSet::get( static::$_info, $key, $defaultValue );
+        return null === $key ? static::$_info : ArrayUtils::get( static::$_info, $key, $defaultValue );
     }
 
     /**
@@ -595,17 +600,17 @@ class Curl extends Verbs
     public static function currentUrl( $includeQuery = true, $includePath = true )
     {
         //	Are we SSL? Check for load balancer protocol as well...
-        $_port = intval( IfSet::get( $_SERVER, 'HTTP_X_FORWARDED_PORT', IfSet::get( $_SERVER, 'SERVER_PORT', 80 ) ) );
-        $_protocol = IfSet::get( $_SERVER, 'HTTP_X_FORWARDED_PROTO', 'http' . ( IfSet::getBool( $_SERVER, 'HTTPS' ) ? 's' : null ) ) . '://';
-        $_host = IfSet::get( $_SERVER, 'HTTP_X_FORWARDED_HOST', IfSet::get( $_SERVER, 'HTTP_HOST', gethostname() ) );
-        $_parts = parse_url( $_protocol . $_host . IfSet::get( $_SERVER, 'REQUEST_URI' ) );
+        $_port = intval( ArrayUtils::get( $_SERVER, 'HTTP_X_FORWARDED_PORT', ArrayUtils::get( $_SERVER, 'SERVER_PORT', 80 ) ) );
+        $_protocol = ArrayUtils::get( $_SERVER, 'HTTP_X_FORWARDED_PROTO', 'http' . ( ArrayUtils::getBool( $_SERVER, 'HTTPS' ) ? 's' : null ) ) . '://';
+        $_host = ArrayUtils::get( $_SERVER, 'HTTP_X_FORWARDED_HOST', ArrayUtils::get( $_SERVER, 'HTTP_HOST', gethostname() ) );
+        $_parts = parse_url( $_protocol . $_host . ArrayUtils::get( $_SERVER, 'REQUEST_URI' ) );
 
-        if ( ( empty( $_port ) || !is_numeric( $_port ) ) && null !== ( $_parsePort = IfSet::get( $_parts, 'port' ) ) )
+        if ( ( empty( $_port ) || !is_numeric( $_port ) ) && null !== ( $_parsePort = ArrayUtils::get( $_parts, 'port' ) ) )
         {
             $_port = @intval( $_parsePort );
         }
 
-        if ( null !== ( $_query = IfSet::get( $_parts, 'query' ) ) )
+        if ( null !== ( $_query = ArrayUtils::get( $_parts, 'query' ) ) )
         {
             $_query = static::urlSeparator( $_query ) . http_build_query( explode( '&', $_query ) );
         }
@@ -628,7 +633,7 @@ class Curl extends Verbs
             $_protocol .
             $_host .
             $_port .
-            ( true === $includePath ? IfSet::get( $_parts, 'path' ) : null ) .
+            ( true === $includePath ? ArrayUtils::get( $_parts, 'path' ) : null ) .
             ( true === $includeQuery ? $_query : null );
 
         return $_currentUrl;
