@@ -102,6 +102,22 @@ class ArrayUtils
     }
 
     /**
+     * Removes items with null value from an array.
+     *
+     * @param array $array
+     */
+    public static function removeNull( array & $array)
+    {
+        foreach($array as $key => $value)
+        {
+            if(null === $value)
+            {
+                unset($array[$key]);
+            }
+        }
+    }
+
+    /**
      * @param array|\ArrayObject $target Target to check
      * @param string             $key    Key to check
      *
