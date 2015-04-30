@@ -108,7 +108,7 @@ abstract class FactoryEnum
         foreach ( static::$_constants[$_key] as $_constant => $_value )
         {
             $_temp[$_value] = Inflector::display( Inflector::neutralize( $_constant ) );
-            unset( $_value, $_option );
+            unset( $_value, $_constant );
         }
 
         return $_temp;
@@ -124,12 +124,18 @@ abstract class FactoryEnum
      *    }
      *
      * @param mixed $value
+     * @param bool  $returnConstant
      *
      * @return bool
      */
-    public static function contains( $value )
+    public static function contains( $value, $returnConstant = false )
     {
-        return in_array( $value, array_values( static::getDefinedConstants() ) );
+        if ( in_array( $value, static::getDefinedConstants() ) )
+        {
+            return $returnConstant ? static::nameOf( $value ) : true;
+        }
+
+        return false;
     }
 
     /**
@@ -174,7 +180,7 @@ abstract class FactoryEnum
      */
     public static function nameOf( $constant, $flipped = true, $pretty = true )
     {
-        if ( in_array( $constant, array_keys( $_constants = static::getDefinedConstants( $flipped ) ) ) )
+        if ( in_array( $constant, $_constants = static::getDefinedConstants( $flipped ) ) )
         {
             return $pretty ? Inflector::display( Inflector::neutralize( $_constants[$constant] ) ) : $_constants[$constant];
         }
