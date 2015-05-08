@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility\Enums;
+<?php namespace DreamFactory\Library\Utility\Enums;
 
 use DreamFactory\Library\Utility\Inflector;
 
@@ -158,34 +157,58 @@ abstract class FactoryEnum
     public static function defines( $constant, $returnValue = false )
     {
         $_constants = static::getDefinedConstants();
-        $_has = isset( $_constants[$constant] );
+        $_has = array_key_exists( $constant, $_constants );
 
-        if ( false === $_has && false !== $returnValue )
+        if ( !$_has && $returnValue )
         {
             throw new \InvalidArgumentException( 'The constant "' . $constant . '" is not defined.' );
         }
 
-        return false === $returnValue ? $_has : $_constants[$constant];
+        return !$returnValue ? $_has : $_constants[$constant];
     }
 
     /**
      * Returns the constant name as a string
      *
-     * @param string $constant
-     * @param bool   $flipped If false, the $constantValue should contain the constant name and the value will be returned
-     * @param bool   $pretty  If true, returned value is prettified (acme.before_event becomes "Acme Before Event")
+     * @param string|int $constant The CONSTANT's value that you want the name of
+     * @param bool       $flipped  If false, $constant should be the CONSTANT's name. The CONSTANT's value will be returned instead.
+     * @param bool       $pretty   If true, returned value is prettified (acme.before_event becomes "Acme Before Event")
      *
      * @throws \InvalidArgumentException
-     * @return string
+     * @return string|int
      */
     public static function nameOf( $constant, $flipped = true, $pretty = true )
     {
-        if ( in_array( $constant, $_constants = static::getDefinedConstants( $flipped ) ) )
+        $_result = null;
+
+        foreach ( static::getDefinedConstants() as $_name => $_value )
         {
-            return $pretty ? Inflector::display( Inflector::neutralize( $_constants[$constant] ) ) : $_constants[$constant];
+            if ( $flipped )
+            {
+                if ( $_name == $constant )
+                {
+                    $_result = $_value;
+                    break;
+                }
+            }
+            else
+            {
+                if ( $_value == $constant )
+                {
+                    $_result = $_name;
+                    break;
+                }
+            }
         }
 
-        throw new \InvalidArgumentException( 'A constant with the value of "' . $constant . '" does not exist.' );
+        if ( !$_result )
+        {
+            throw new \InvalidArgumentException( 'A constant with the value of "' . $constant . '" does not exist.' );
+        }
+
+        return !$flipped && $pretty
+            ? Inflector::display( Inflector::neutralize( $_result ) )
+            : $_result;
     }
 
     /**
