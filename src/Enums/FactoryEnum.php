@@ -157,7 +157,15 @@ abstract class FactoryEnum
     public static function defines( $constant, $returnValue = false )
     {
         $_constants = static::getDefinedConstants();
-        $_has = array_key_exists( $constant, $_constants );
+
+        if ( false === ( $_has = array_key_exists( $constant, $_constants ) ) )
+        {
+            if ( false !== ( $_has = array_key_exists( strtoupper( $constant ), $_constants ) ) )
+            {
+                $_has = true;
+                $constant = strtoupper( $constant );
+            }
+        }
 
         if ( !$_has && $returnValue )
         {
