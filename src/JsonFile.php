@@ -3,12 +3,14 @@ namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Exceptions\FileException;
 use DreamFactory\Library\Utility\Exceptions\FileSystemException;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 
 /**
  * Reads/writes a json file
  * Can be used statically as well for various functionality
  */
-class JsonFile
+class JsonFile implements Arrayable, Jsonable
 {
     //******************************************************************************
     //* Constants
@@ -38,23 +40,23 @@ class JsonFile
      * @type int The number of times to retry write operations (default is 5s)
      */
     const STORAGE_OPERATION_RETRY_DELAY = 500000;
-    /**
-     * @type string The file naming template for backups
-     */
-    const BACKUP_FORMAT = '{file}.{date}.save';
 
     //******************************************************************************
     //* Members
     //******************************************************************************
 
     /**
+     * @type bool If true, a copy of files to be overwritten will be made
+     */
+    protected static $_makeBackups = false;
+    /**
      * @type string The absolute path of our JSON file.
      */
     protected $_filePath;
     /**
-     * @type bool If true, a copy of files to be overwritten will be made
+     * @type array A map of properties to their JSON equivalents and vice-versa
      */
-    protected static $_makeBackups = false;
+    protected $_propertyMap;
 
     //******************************************************************************
     //* Methods
@@ -69,26 +71,31 @@ class JsonFile
      */
     public function __construct( $filePath = null, $defaultContents = null, $makeBackups = true )
     {
-        $this->_filePath = static::ensureFileExists( dirname( $filePath ), basename( $filePath ), $defaultContents );
         static::$_makeBackups = $makeBackups;
+        static::ensureFileExists( $filePath, $defaultContents ) && $this->_filePath = $filePath;
     }
 
     /**
-     * Reads the file
+     * Reads the file and returns the contents
      *
-     * @param bool $decoded If true (the default), the read data is decoded
+     * @param bool $decoded  If true (the default), the read data is decoded
+     * @param bool $asArray  If true, the default, data is return in an array. Otherwise it comes back as a \stdClass
+     * @param int  $depth    The maximum recursion depth
+     * @param int  $options  Any json_decode options
+     * @param bool $populate If true, any read data will be placed into matching member variables
      *
-     * @throws FileSystemException
      * @return array|object
      */
-    public function read( $decoded = true )
+    public function read( $decoded = true, $asArray = true, $depth = 512, $options = 0, $populate = false )
     {
         if ( !static::ensureFileExists( $this->_filePath ) )
         {
             throw new FileSystemException( 'The file "' . $this->_filePath . '" does not exist.' );
         }
 
-        $_data = static::decodeFile( $this->_filePath );
+        $_data = static::decodeFile( $this->_filePath, $asArray, $depth, $options );
+
+        $populate && $this->_populateProperties( $_data );
 
         return $decoded ? $_data : static::encode( $_data );
     }
@@ -96,18 +103,17 @@ class JsonFile
     /**
      * Writes the file
      *
-     * @param array|object $data       The unencoded data to store
+     * @param array|object $data       The unencoded data to store. If empty, the static::toArray() method result is written
      * @param int          $options    Options for json_encode. Default is static::DEFAULT_JSON_ENCODE_OPTIONS
      * @param int          $retries    The number of times to retry the write.
      * @param float|int    $retryDelay The number of microseconds (100000 = 1s) to wait between retries
      *
-     *
      * @throws FileSystemException
      * @throws \Exception
      */
-    public function write( $data = array(), $options = self::DEFAULT_JSON_ENCODE_OPTIONS, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY )
+    public function write( $data = null, $options = self::DEFAULT_JSON_ENCODE_OPTIONS, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY )
     {
-        static::encodeFile( $this->_filePath, $data, true, $options );
+        static::encodeFile( $this->_filePath, $data ?: $this->toArray(), $options, $retries, $retryDelay );
     }
 
     /**
@@ -115,28 +121,24 @@ class JsonFile
      *
      * @param string       $filePath        The absolute path of the file, including the name.
      * @param array|object $defaultContents The contents to write to the file if being created
+     * @param bool         $checkOnly       If true, only existence is checked. No exceptions will be thrown
      *
-     * @throws FileSystemException
-     * @return string The absolute path to the file
+     * @return string
      */
-    public function ensureFileExists( $filePath, $defaultContents = null )
+    public function ensureFileExists( $filePath, $defaultContents = null, $checkOnly = false )
     {
-        $_path = dirname( $filePath );
-
-        if ( !is_dir( $_path ) || false === @mkdir( $_path, 0777, true ) )
+        if ( !FileSystem::ensurePath( $_path = dirname( $filePath ) ) )
         {
-            if ( file_exists( $filePath ) )
+            if ( $checkOnly )
             {
-                throw new FileSystemException( $_path . ' exists but it is not a directory.' );
+                return false;
             }
 
-            throw new FileSystemException( 'Unable to create directory: ' . $_path );
+            throw new \InvalidArgumentException( 'The path "' . $_path . '" is not writeable.' );
         }
 
-        if ( !file_exists( $filePath ) )
-        {
-            static::encodeFile( $filePath, empty( $defaultContents ) ? new \stdClass : $defaultContents );
-        }
+        //  Create a blank file if one does not exists
+        !file_exists( $filePath ) && static::encodeFile( $filePath, $defaultContents ?: $this->toArray() );
 
         //  Exists
         return is_file( $filePath );
@@ -146,13 +148,14 @@ class JsonFile
      * JSON encodes data
      *
      * @param  mixed $data    Data to encode
-     * @param  int   $options Options for json_encode. Default is static::DEFAULT_JSON_ENCODE_OPTIONS
+     * @param int    $options Options for json_encode. Default is static::DEFAULT_JSON_ENCODE_OPTIONS
+     * @param int    $depth   The maximum depth to recurse
      *
      * @return string Encoded json
      */
-    public static function encode( $data, $options = self::DEFAULT_JSON_ENCODE_OPTIONS )
+    public static function encode( $data, $options = self::DEFAULT_JSON_ENCODE_OPTIONS, $depth = 512 )
     {
-        if ( false === ( $_json = json_encode( $data, $options ) ) || JSON_ERROR_NONE != json_last_error() )
+        if ( false === ( $_json = json_encode( $data, $options, $depth ) ) || JSON_ERROR_NONE !== json_last_error() )
         {
             throw new \InvalidArgumentException( 'The data could not be encoded: ' . json_last_error_msg() );
         }
@@ -161,38 +164,32 @@ class JsonFile
     }
 
     /**
-     * Encodes and writes contents to file
+     * Encodes and writes contents to file. If $data is not a JSON string, it will be converted to one automatically
      *
      * @param string $file       The absolute path to the destination file
      * @param mixed  $data       The data to encode and write
      * @param int    $options    The JSON encoding options
+     * @param int    $depth      The maximum depth to recurse
      * @param int    $retries    The number of times to retry writing the file
      * @param int    $retryDelay The number of microseconds (not milliseconds)
      *
-     * @throws \Exception
      */
-    public static function encodeFile( $file, $data, $options = self::JSON_UNESCAPED_SLASHES, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY )
+    public static function encodeFile( $file, $data, $options = self::JSON_UNESCAPED_SLASHES, $depth = 512, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY )
     {
-        $data = static::encode( $data, $options );
-        $_fileCopy = str_replace( array('{file}', '{date}'), array($file, date( 'YmdHis' )), static::BACKUP_FORMAT );
-
-        FileSystem::ensurePath( dirname( $file ) );
-
-        if ( static::$_makeBackups && file_exists( $file ) )
+        if ( !FileSystem::ensurePath( $_path = dirname( $file ) ) || !is_writeable( $_path ) )
         {
-            if ( false === @copy( $file, $_fileCopy ) )
-            {
-                throw new \RuntimeException( 'Could not make copy of existing file to "' . $_fileCopy . '"' );
-            }
+            throw new \InvalidArgumentException( 'The path "' . $_path . '" is not writeable.' );
         }
+
+        file_exists( $file ) && static::_backupExistingFile( $file );
 
         while ( $retries-- )
         {
             try
             {
-                if ( false === file_put_contents( $file, $data ) )
+                if ( false === file_put_contents( $file, !is_string( $data ) ? static::encode( $data, $options, $depth ) : $data ) )
                 {
-                    throw new FileException( 'Unable to write data to file "' . $file . '".' );
+                    throw new FileException( 'Unable to write data to file "' . $file . '" after ' . $retries . ' attempt(s).' );
                 }
 
                 break;
@@ -213,14 +210,14 @@ class JsonFile
     /**
      * Decodes a JSON string
      *
-     * @param string $json The data to decode
-     * @param bool   $asArray
-     * @param int    $depth
-     * @param int    $options
+     * @param string $json    The data to decode
+     * @param bool   $asArray If true, data is returned as an array vs. a \stdClass
+     * @param int    $depth   The maximum depth to recurse
+     * @param int    $options Any json_decode() options
      *
      * @return mixed
      */
-    public static function decode( $json, $asArray = true, $depth = 512, $options = 0 )
+    public static function decode( $json, $asArray = true, $depth = 512, $options = self::DEFAULT_JSON_ENCODE_OPTIONS )
     {
         if ( false === ( $_data = json_decode( $json, $asArray, $depth, $options ) ) || JSON_ERROR_NONE != json_last_error() )
         {
@@ -240,14 +237,128 @@ class JsonFile
      *
      * @return mixed
      */
-    public static function decodeFile( $file, $asArray = true, $depth = 512, $options = 0 )
+    public static function decodeFile( $file, $asArray = true, $depth = 512, $options = self::DEFAULT_JSON_ENCODE_OPTIONS )
     {
-        if ( !file_exists( $file ) || !is_readable( $file ) || false === ( $_json = file_get_contents( $file ) ) )
+        if ( FileSystem::ensurePath( $_path = dirname( $file ) ) && file_exists( $file ) && is_readable( $file ) )
         {
-            throw new \InvalidArgumentException( 'The file "' . $file . '" does not exist or cannot be read.' );
+            return static::decode( file_get_contents( $file ), $asArray, $depth, $options );
         }
 
-        return static::decode( $_json, $asArray, $depth, $options );
+        throw new \InvalidArgumentException( 'The file "' . $file . '" does not exist or cannot be read.' );
+    }
+
+    /**
+     * @param string $file Absolute path to our file
+     *
+     * @return bool|int
+     */
+    protected static function _backupExistingFile( $file )
+    {
+        static $_template = '{file}.{date}.save';
+
+        if ( !static::$_makeBackups || !file_exists( $file ) )
+        {
+            return true;
+        }
+
+        if ( !FileSystem::ensurePath( $_path = dirname( $file ) ) )
+        {
+            throw new \RuntimeException( 'Unable to create file "' . $file . '"' );
+        }
+
+        return file_put_contents( str_replace( ['{file}.{date}'], [basename( $file ), date( 'YmdHiS' )], $_template ), file_get_contents( $file ) );
+    }
+
+    /**
+     * Get the instance as an array.
+     *
+     * @return array
+     */
+    public function toArray()
+    {
+        $_data = [];
+
+        foreach ( array_keys( $this->_populatePropertyMap() ) as $_jsonKey => $_property )
+        {
+            $_data[$_jsonKey] = $this->{$_property};
+        }
+
+        return $_data;
+    }
+
+    /**
+     * Convert the object to its JSON representation.
+     *
+     * @param  int $options
+     *
+     * @return string
+     */
+    public function toJson( $options = self::DEFAULT_JSON_ENCODE_OPTIONS )
+    {
+        return $this->encode( $this->toArray(), $options );
+    }
+
+    /**
+     * Populates the property map used for toArray/toJson
+     *
+     * @param bool $force If true, cache will be busted
+     *
+     * @return array
+     */
+    protected function _populatePropertyMap( $force = false )
+    {
+        if ( false === $force && !empty( $this->_propertyMap ) )
+        {
+            return $this->_propertyMap;
+        }
+
+        $_me = new \ReflectionClass( $this );
+        $_map = [];
+
+        foreach ( $_me->getProperties() as $_key => $_value )
+        {
+            $_map[$_key] = str_replace( '_', '-', trim( camel_case( $_key ), '_' ) );
+        }
+
+        return $this->_propertyMap = $_map;
+    }
+
+    /**
+     * @param array|\stdClass $values
+     *
+     * @return $this
+     */
+    protected function _populateProperties( $values = null )
+    {
+        if ( !empty( $values ) )
+        {
+            $_map = array_flip( $this->getPropertyMap( true ) );
+
+            foreach ( $values as $_key => $_value )
+            {
+                isset( $_map[$_key] ) && $this->{'set' . $_map[$_key]}( $_value );
+            }
+        }
+
+        return $this->toArray();
+    }
+
+    /**
+     * @param bool $force If true, cache will be busted
+     *
+     * @return array
+     */
+    public function getPropertyMap( $force = false )
+    {
+        return $this->_propertyMap ?: $this->_populatePropertyMap( $force );
+    }
+
+    /**
+     * @return boolean
+     */
+    public static function isMakeBackups()
+    {
+        return static::$_makeBackups;
     }
 
     /**
