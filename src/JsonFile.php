@@ -57,15 +57,14 @@ class JsonFile extends Json
     /**
      * Reads the file and returns the contents
      *
-     * @param bool $decoded  If true (the default), the read data is decoded
-     * @param bool $asArray  If true, the default, data is return in an array. Otherwise it comes back as a \stdClass
-     * @param int  $depth    The maximum recursion depth
-     * @param int  $options  Any json_decode options
-     * @param bool $populate If true, any read data will be placed into matching member variables
+     * @param bool $decoded If true (the default), the read data is decoded
+     * @param bool $asArray If true, the default, data is return in an array. Otherwise it comes back as a \stdClass
+     * @param int  $depth   The maximum recursion depth
+     * @param int  $options Any json_decode options
      *
      * @return array|object
      */
-    public function read($decoded = true, $asArray = true, $depth = 512, $options = 0, $populate = false)
+    public function read($decoded = true, $asArray = true, $depth = 512, $options = 0)
     {
         if (!file_exists($this->_filePath)) {
             throw new FileSystemException('The file "' . $this->_filePath . '" does not exist.');
@@ -91,7 +90,7 @@ class JsonFile extends Json
      */
     public function write($data = [], $options = null, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY)
     {
-        return static::encodeFile($this->_filePath, $data ?: $this->toArray(), $options, $retries, $retryDelay);
+        return static::encodeFile($this->_filePath, $data ?: [], $options, $retries, $retryDelay);
     }
 
     /**
@@ -114,7 +113,7 @@ class JsonFile extends Json
         }
 
         //  Create a blank file if one does not exists
-        !file_exists($filePath) && static::encodeFile($filePath, $defaultContents ?: $this->toArray());
+        !file_exists($filePath) && static::encodeFile($filePath, $defaultContents ?: []);
 
         //  Exists
         return is_file($filePath);
