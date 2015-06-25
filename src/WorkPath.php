@@ -4,9 +4,8 @@ use League\Flysystem\Filesystem;
 
 /**
  * A utility that manages working directories/space
- * A kick-ass cURL wrapper
  */
-class WorkingSpace
+class WorkPath
 {
     //******************************************************************************
     //* Members
