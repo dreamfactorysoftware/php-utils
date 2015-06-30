@@ -111,7 +111,7 @@ abstract class FactoryEnum
     }
 
     /**
-     * Returns true or false if this class contains a specific constant value.
+     * Returns constant name or true/false if class contains a specific constant value.
      *
      * Use for validity checks:
      *
@@ -131,6 +131,18 @@ abstract class FactoryEnum
         }
 
         return false;
+    }
+
+    /**
+     * Alias of contains()
+     *
+     * @param mixed $value
+     *
+     * @return bool
+     */
+    public static function has($value)
+    {
+        return static::contains($value);
     }
 
     /**
