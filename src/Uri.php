@@ -27,11 +27,11 @@ class Uri
         }
 
         $_scheme =
-            IfSet::get( $_parts, 'scheme', Scalar::boolVal( IfSet::get( $_SERVER, 'HTTPS' ) ) ? 'https' : 'http' );
+            array_get( $_parts, 'scheme', Scalar::boolVal( array_get( $_SERVER, 'HTTPS' ) ) ? 'https' : 'http' );
 
-        $_port = IfSet::get( $_parts, 'port' );
-        $_host = IfSet::get( $_parts, 'host' );
-        $_path = IfSet::get( $_parts, 'path' );
+        $_port = array_get( $_parts, 'port' );
+        $_host = array_get( $_parts, 'host' );
+        $_path = array_get( $_parts, 'path' );
 
         //  Set ports to defaults for scheme if empty
         if ( empty( $_port ) )

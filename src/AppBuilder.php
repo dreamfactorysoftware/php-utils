@@ -251,8 +251,8 @@ class AppBuilder extends ContainerBuilder
     protected static function _getAppRunId( $hostName = null )
     {
         $_key = PHP_SAPI . '.' .
-            IfSet::get( $_SERVER, 'REMOTE_ADDR', $hostName ?: getHostName() ) . '.' .
-            IfSet::get( $_SERVER, 'HTTP_HOST', $hostName ?: getHostName() ) . '.';
+            array_get( $_SERVER, 'REMOTE_ADDR', $hostName ?: getHostName() ) . '.' .
+            array_get( $_SERVER, 'HTTP_HOST', $hostName ?: getHostName() ) . '.';
 
         return hash( 'sha256', $_key );
     }

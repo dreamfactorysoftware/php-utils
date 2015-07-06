@@ -156,7 +156,7 @@ class Scalar
 
         for ( $_i = 0; $_i < $_args; $_i++ )
         {
-            if ( null !== ( $_default = IfSet::get( $_haystack, $_i ) ) )
+            if ( null !== ( $_default = array_get( $_haystack, $_i ) ) )
             {
                 break;
             }

@@ -218,8 +218,8 @@ class Cors
         }
         else
         {
-            $_originUri = IfSet::get( $_cache[$_key], 'origin-uri' );
-            $_allowedVerbs = IfSet::get( $_cache[$_key], 'allowed-verbs' );
+            $_originUri = array_get( $_cache[$_key], 'origin-uri' );
+            $_allowedVerbs = array_get( $_cache[$_key], 'allowed-verbs' );
         }
 
         //  Rebuild headers
@@ -290,12 +290,12 @@ class Cors
             if ( is_array( $_hostInfo ) )
             {
                 //	If is_enabled prop not there, assuming enabled.
-                if ( !Scalar::boolval( IfSet::get( $_hostInfo, 'is_enabled', true ) ) )
+                if ( !Scalar::boolval( array_get( $_hostInfo, 'is_enabled', true ) ) )
                 {
                     continue;
                 }
 
-                if ( null === ( $_whiteGuy = IfSet::get( $_hostInfo, 'host' ) ) )
+                if ( null === ( $_whiteGuy = array_get( $_hostInfo, 'host' ) ) )
                 {
                     $this->_logger->error( 'whitelist entry missing "host" parameter' );
 

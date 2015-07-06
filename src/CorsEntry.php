@@ -54,12 +54,12 @@ class CorsEntry
      */
     public function __construct( $host = null, $port = null, $scheme = null, $allowedVerbs = null )
     {
-        $this->_host = strtolower( $host ?: IfSet::get( $_SERVER, 'HTTP_HOST' ) );
+        $this->_host = strtolower( $host ?: array_get( $_SERVER, 'HTTP_HOST' ) );
 
         if ( static::WIDE_OPEN != $this->_host )
         {
-            $this->_port = $port ?: IfSet::get( $_SERVER, 'SERVER_PORT' );
-            $this->_scheme = $scheme ?: 'http' . ( IfSet::getBool( $_SERVER, 'HTTPS' ) ? 's' : null );
+            $this->_port = $port ?: array_get( $_SERVER, 'SERVER_PORT' );
+            $this->_scheme = $scheme ?: 'http' . ( array_getBool( $_SERVER, 'HTTPS' ) ? 's' : null );
 
             //  Ignore standard ports
             'https' == $this->_scheme && 443 == $this->_port && $this->_port = null;

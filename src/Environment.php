@@ -52,8 +52,8 @@ class Environment extends ParameterBag implements EnvironmentProviderLike, Conta
     /** @inheritdoc */
     public function __construct( array $settings = array() )
     {
-        $this->_request = IfSet::get( $settings, 'request', Request::createFromGlobals() );
-        $this->_response = IfSet::get( $settings, 'response', Response::create() );
+        $this->_request = array_get( $settings, 'request', Request::createFromGlobals() );
+        $this->_response = array_get( $settings, 'response', Response::create() );
         $this->_container = null;
 
         parent::__construct( $settings );
