@@ -22,5 +22,5 @@ class EnterpriseDefaults extends FactoryEnum
      */
     const DFE_MARKER = '/var/www/.dfe-managed';
 
-    const CONSOLE_X_HEADER = 'X_DREAMFACTORY_CONSOLE_KEY';
+    const CONSOLE_X_HEADER = 'X-DreamFactory-Console-Key';
 }
