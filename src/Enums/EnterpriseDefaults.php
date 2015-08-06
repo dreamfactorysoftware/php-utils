@@ -1,9 +1,7 @@
 <?php namespace DreamFactory\Library\Utility\Enums;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
-
 /**
- * DFE constants
+ * Constants shared between DreamFactory v2.x and DreamFactory Enterprise v1.x
  */
 class EnterpriseDefaults extends FactoryEnum
 {
@@ -11,16 +9,24 @@ class EnterpriseDefaults extends FactoryEnum
     //* Constants
     //******************************************************************************
 
-    /** @type string The name of the cluster manifest file */
+    /**
+     * @type string HTTP header used to speak with the creator
+     */
+    const CONSOLE_X_HEADER = 'X-DreamFactory-Console-Key';
+    /**
+     * @type string The managed instance provisioner manifest file name
+     */
     const CLUSTER_MANIFEST_FILE = '.dfe.cluster.json';
     /**
-     * @var string
+     * @type string An absolute path to a file whose very existence implies that the instance is under management
+     */
+    const DFE_MARKER = '/var/www/.dfe-managed';
+    /**
+     * @type string An absolute path to a file whose very existence implies that the instance is under management
      */
     const MAINTENANCE_MARKER = '/var/www/.maintenance';
     /**
-     * @var string
+     * @type string
      */
-    const DFE_MARKER = '/var/www/.dfe-managed';
-
-    const CONSOLE_X_HEADER = 'X-DreamFactory-Console-Key';
+    const MANAGED_INSTANCE_MARKER = '/var/www/.managed';
 }
