@@ -166,8 +166,8 @@ abstract class FactoryEnum
     {
         $_constants = static::getDefinedConstants();
 
-        if (false === ($_has = array_key_exists($constant, $_constants))) {
-            if (false !== ($_has = array_key_exists(strtoupper($constant), $_constants))) {
+        if (false === ($_has = array_key_exists(strtoupper($constant), $_constants))) {
+            if (false !== ($_has = array_key_exists($constant, $_constants))) {
                 $_has = true;
                 $constant = strtoupper($constant);
             }
