@@ -26,22 +26,24 @@ class FileSystem
      * @return bool|string Returns the created path or false if non-existent
      * @deprecated because it sucks. Bool or string? WTF. Use static::buildPath() instead.
      */
-    public static function makePath($createMissing = true, $part = null)
+    public static function makePath( $createMissing = true, $part = null )
     {
         $_path = null;
 
         $_parts = func_get_args();
-        array_shift($_parts);
+        array_shift( $_parts );
 
-        foreach ($_parts as $_part) {
-            !empty($_part) && $_path .= DIRECTORY_SEPARATOR . trim($_part, DIRECTORY_SEPARATOR . ' ');
+        foreach ( $_parts as $_part )
+        {
+            !empty( $_part ) && $_path .= DIRECTORY_SEPARATOR . trim( $_part, DIRECTORY_SEPARATOR . ' ' );
         }
 
-        if (!$createMissing) {
-            return is_dir($_path) ? $_path : false;
+        if ( !$createMissing )
+        {
+            return is_dir( $_path ) ? $_path : false;
         }
 
-        static::ensurePath($_path);
+        static::ensurePath( $_path );
 
         return $_path;
     }
@@ -61,48 +63,64 @@ class FileSystem
      *
      * @return array|bool
      */
-    public static function glob($pattern, $flags = 0)
+    public static function glob( $pattern, $flags = 0 )
     {
-        $pattern = static::normalizePath($pattern);
+        $pattern = static::normalizePath( $pattern );
 
-        $_split = explode(DIRECTORY_SEPARATOR,
-            str_replace('\\', DIRECTORY_SEPARATOR, ltrim($pattern, DIRECTORY_SEPARATOR)));
+        $_split = explode(
+            DIRECTORY_SEPARATOR,
+            str_replace( '\\', DIRECTORY_SEPARATOR, ltrim( $pattern, DIRECTORY_SEPARATOR ) )
+        );
 
-        $_mask = array_pop($_split);
-        $_leading = (DIRECTORY_SEPARATOR == $pattern[0]);
-        $_path = ($_leading ? DIRECTORY_SEPARATOR : null) . implode(DIRECTORY_SEPARATOR, $_split);
+        $_mask = array_pop( $_split );
+        $_leading = ( DIRECTORY_SEPARATOR == $pattern[0] );
+        $_path = ( $_leading ? DIRECTORY_SEPARATOR : null ) . implode( DIRECTORY_SEPARATOR, $_split );
 
         $_glob = false;
 
-        if (false !== ($_directory = opendir($_path))) {
+        if ( false !== ( $_directory = opendir( $_path ) ) )
+        {
             $_glob = [];
 
-            while (false !== ($_file = readdir($_directory))) {
+            while ( false !== ( $_file = readdir( $_directory ) ) )
+            {
                 $_fullPath = $_path . DIRECTORY_SEPARATOR . $_file;
 
                 //	Recurse directories
-                if (is_dir($_fullPath) && ($flags & GlobFlags::GLOB_RECURSE) && in_array($_file, ['.', '..'])) {
-                    $_glob = array_merge($_glob,
-                        Scalar::array_prepend(static::glob($_fullPath . DIRECTORY_SEPARATOR . $_mask, $flags),
-                            ($flags & GlobFlags::GLOB_PATH ? null : $_file . DIRECTORY_SEPARATOR)));
+                if ( is_dir( $_fullPath ) && ( $flags & GlobFlags::GLOB_RECURSE ) && in_array( $_file, ['.', '..'] ) )
+                {
+                    $_glob = array_merge(
+                        $_glob,
+                        Scalar::array_prepend(
+                            static::glob( $_fullPath . DIRECTORY_SEPARATOR . $_mask, $flags ),
+                            ( $flags & GlobFlags::GLOB_PATH ? null : $_file . DIRECTORY_SEPARATOR )
+                        )
+                    );
                 }
 
                 // Match file mask
-                if (fnmatch($_mask, $_file)) {
-                    if (((!($flags & GLOB_ONLYDIR)) || is_dir($_fullPath)) && ((!($flags & GlobFlags::GLOB_NODIR)) || (!is_dir($_fullPath))) && ((!($flags & GlobFlags::GLOB_NODOTS)) || (!in_array($_file,
-                                ['.', '..'])))
-                    ) {
+                if ( fnmatch( $_mask, $_file ) )
+                {
+                    if ( ( ( !( $flags & GLOB_ONLYDIR ) ) || is_dir( $_fullPath ) ) &&
+                        ( ( !( $flags & GlobFlags::GLOB_NODIR ) ) || ( !is_dir( $_fullPath ) ) ) &&
+                        ( ( !( $flags & GlobFlags::GLOB_NODOTS ) ) || ( !in_array(
+                                $_file,
+                                ['.', '..']
+                            ) ) )
+                    )
+                    {
                         $_glob[] =
-                            ($flags & GlobFlags::GLOB_PATH ? $_path . '/' : null) . $_file . ($flags & GLOB_MARK ? '/'
-                                : '');
+                            ( $flags & GlobFlags::GLOB_PATH ? $_path . '/' : null ) . $_file . ( $flags & GLOB_MARK ? '/'
+                                : '' );
                     }
                 }
             }
 
-            closedir($_directory);
+            closedir( $_directory );
 
-            if (!empty($_glob) && !($flags & GLOB_NOSORT)) {
-                sort($_glob);
+            if ( !empty( $_glob ) && !( $flags & GLOB_NOSORT ) )
+            {
+                sort( $_glob );
             }
         }
 
@@ -118,29 +136,35 @@ class FileSystem
      * @return bool
      * @throws \InvalidArgumentException
      */
-    public static function rmdir($dirPath, $force = false)
+    public static function rmdir( $dirPath, $force = false )
     {
-        $_path = rtrim($dirPath) . DIRECTORY_SEPARATOR;
+        $_path = rtrim( $dirPath ) . DIRECTORY_SEPARATOR;
 
-        if (!$force) {
-            return rmdir($_path);
+        if ( !$force )
+        {
+            return rmdir( $_path );
         }
 
-        if (!is_dir($_path)) {
-            throw new \InvalidArgumentException('"' . $_path . '" is not a directory or bogus in some other way.');
+        if ( !is_dir( $_path ) )
+        {
+            throw new \InvalidArgumentException( '"' . $_path . '" is not a directory or bogus in some other way.' );
         }
 
-        $_files = glob($_path . '*', GLOB_MARK);
+        $_files = glob( $_path . '*', GLOB_MARK );
 
-        foreach ($_files as $_file) {
-            if (is_dir($_file)) {
-                static::rmdir($_file, true);
-            } else {
-                unlink($_file);
+        foreach ( $_files as $_file )
+        {
+            if ( is_dir( $_file ) )
+            {
+                static::rmdir( $_file, true );
+            }
+            else
+            {
+                unlink( $_file );
             }
         }
 
-        return rmdir($_path);
+        return rmdir( $_path );
     }
 
     /**
@@ -150,12 +174,15 @@ class FileSystem
      *
      * @return string
      */
-    public static function normalizePath($path)
+    public static function normalizePath( $path )
     {
-        if ('\\' == DIRECTORY_SEPARATOR) {
-            if (isset($path, $path[1], $path[2]) && ':' === $path[1] && '\\' === $path[2]) {
-                if (false !== strpos($path, '/')) {
-                    $path = str_replace('/', DIRECTORY_SEPARATOR, $path);
+        if ( '\\' == DIRECTORY_SEPARATOR )
+        {
+            if ( isset( $path, $path[1], $path[2] ) && ':' === $path[1] && '\\' === $path[2] )
+            {
+                if ( false !== strpos( $path, '/' ) )
+                {
+                    $path = str_replace( '/', DIRECTORY_SEPARATOR, $path );
                 }
             }
         }
@@ -173,13 +200,14 @@ class FileSystem
      *
      * @return bool FALSE if the directory does not exist nor can be created
      */
-    public static function ensurePath($path)
+    public static function ensurePath( $path )
     {
-        if (!is_dir($path) && !@mkdir($path, 0777, true)) {
+        if ( !is_dir( $path ) && !@mkdir( $path, 0777, true ) )
+        {
             return false;
         }
 
-        @chmod($path, 2775);
+        @chmod( $path, 0775 & ~umask() );
 
         return true;
     }
@@ -197,18 +225,20 @@ class FileSystem
      *
      * @return string Returns the created path
      */
-    public static function buildPath(array $parts, $create = true, $mode = 0777)
+    public static function buildPath( array $parts, $create = true, $mode = 0777 )
     {
         $_path = null;
 
-        foreach ($parts as $_part) {
-            !empty($_part) && $_path .= DIRECTORY_SEPARATOR . trim($_part, DIRECTORY_SEPARATOR . ' ');
+        foreach ( $parts as $_part )
+        {
+            !empty( $_part ) && $_path .= DIRECTORY_SEPARATOR . trim( $_part, DIRECTORY_SEPARATOR . ' ' );
         }
 
-        $_path = realpath($_path);
+        $_path = realpath( $_path );
 
-        if ($create && !static::ensurePath($_path, $mode)) {
-            throw new FileSystemException('Error while creating directory "' . $_path . '".');
+        if ( $create && !static::ensurePath( $_path, $mode ) )
+        {
+            throw new FileSystemException( 'Error while creating directory "' . $_path . '".' );
         }
 
         return $_path;
