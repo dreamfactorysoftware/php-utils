@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Exceptions\FileException;
 use DreamFactory\Library\Utility\Exceptions\FileSystemException;
@@ -136,10 +135,8 @@ class JsonFile extends Json
             throw new \RuntimeException('Unable to create file "' . $file . '"');
         }
 
-        return file_put_contents(
-            str_replace(['{file}', '{date}'], [basename($file), date('YmdHiS')], $_template),
-            file_get_contents($file)
-        );
+        return file_put_contents(str_replace(['{file}', '{date}'], [basename($file), date('YmdHiS')], $_template),
+            file_get_contents($file));
     }
 
     /**
@@ -179,9 +176,7 @@ class JsonFile extends Json
         file_exists($file) && static::_backupExistingFile($file);
 
         if (!is_string($data)) {
-            if (false === ($_json = static::encode($data, $options, $depth)) ||
-                JSON_ERROR_NONE != json_last_error()
-            ) {
+            if (false === ($_json = static::encode($data, $options, $depth)) || JSON_ERROR_NONE != json_last_error()) {
                 throw new \InvalidArgumentException('The $data cannot be converted to JSON.');
             }
 
@@ -191,11 +186,7 @@ class JsonFile extends Json
         while ($retries--) {
             try {
                 if (false === file_put_contents($file, $data)) {
-                    throw new FileException('Unable to write data to file "' .
-                        $file .
-                        '" after ' .
-                        $retries .
-                        ' attempt(s).');
+                    throw new FileException('Unable to write data to file "' . $file . '" after ' . $retries . ' attempt(s).');
                 }
 
                 break;

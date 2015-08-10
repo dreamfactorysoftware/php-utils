@@ -1,8 +1,6 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * Curl
@@ -37,7 +35,7 @@ class Curl extends Verbs
     /**
      * @var array Default cURL options
      */
-    protected static $_curlOptions = array();
+    protected static $_curlOptions = [];
     /**
      * @var int The last http code
      */
@@ -78,9 +76,9 @@ class Curl extends Verbs
      *
      * @return string|\stdClass
      */
-    public static function get( $url, $payload = array(), $curlOptions = array() )
+    public static function get($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::GET, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::GET, $url, $payload, $curlOptions);
     }
 
     /**
@@ -90,9 +88,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function put( $url, $payload = array(), $curlOptions = array() )
+    public static function put($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::PUT, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::PUT, $url, $payload, $curlOptions);
     }
 
     /**
@@ -102,9 +100,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function post( $url, $payload = array(), $curlOptions = array() )
+    public static function post($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::POST, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::POST, $url, $payload, $curlOptions);
     }
 
     /**
@@ -114,9 +112,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function delete( $url, $payload = array(), $curlOptions = array() )
+    public static function delete($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::DELETE, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::DELETE, $url, $payload, $curlOptions);
     }
 
     /**
@@ -126,9 +124,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function head( $url, $payload = array(), $curlOptions = array() )
+    public static function head($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::HEAD, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::HEAD, $url, $payload, $curlOptions);
     }
 
     /**
@@ -138,9 +136,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function options( $url, $payload = array(), $curlOptions = array() )
+    public static function options($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::OPTIONS, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::OPTIONS, $url, $payload, $curlOptions);
     }
 
     /**
@@ -150,9 +148,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function copy( $url, $payload = array(), $curlOptions = array() )
+    public static function copy($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::COPY, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::COPY, $url, $payload, $curlOptions);
     }
 
     /**
@@ -162,9 +160,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function merge( $url, $payload = array(), $curlOptions = array() )
+    public static function merge($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::MERGE, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::MERGE, $url, $payload, $curlOptions);
     }
 
     /**
@@ -174,9 +172,9 @@ class Curl extends Verbs
      *
      * @return bool|mixed|\stdClass
      */
-    public static function patch( $url, $payload = array(), $curlOptions = array() )
+    public static function patch($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( static::PATCH, $url, $payload, $curlOptions );
+        return static::_httpRequest(static::PATCH, $url, $payload, $curlOptions);
     }
 
     /**
@@ -187,9 +185,9 @@ class Curl extends Verbs
      *
      * @return string|\stdClass
      */
-    public static function request( $method, $url, $payload = array(), $curlOptions = array() )
+    public static function request($method, $url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest( $method, $url, $payload, $curlOptions );
+        return static::_httpRequest($method, $url, $payload, $curlOptions);
     }
 
     /**
@@ -201,64 +199,56 @@ class Curl extends Verbs
      * @throws \InvalidArgumentException
      * @return bool|mixed|\stdClass
      */
-    protected static function _httpRequest( $method = self::GET, $url, $payload = array(), $curlOptions = array() )
+    protected static function _httpRequest($method = self::GET, $url, $payload = [], $curlOptions = [])
     {
-        if ( !static::contains( $method ) )
-        {
-            throw new \InvalidArgumentException( 'Invalid method "' . $method . '" specified.' );
+        if (!static::contains($method)) {
+            throw new \InvalidArgumentException('Invalid method "' . $method . '" specified.');
         }
         //	Reset!
         static::$_lastResponseHeaders = static::$_lastHttpCode = static::$_error = static::$_info = $_tmpFile = null;
 
         //	Build a curl request...
-        $_curl = curl_init( $url );
+        $_curl = curl_init($url);
 
         //	Default CURL options for this method
-        $_curlOptions = array(
+        $_curlOptions = [
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER         => true,
             CURLINFO_HEADER_OUT    => true,
             CURLOPT_SSL_VERIFYPEER => false,
-        );
+        ];
 
         //	Merge in the global options if any
-        if ( !empty( static::$_curlOptions ) )
-        {
-            $curlOptions = array_merge(
-                $curlOptions,
-                static::$_curlOptions
-            );
+        if (!empty(static::$_curlOptions)) {
+            $curlOptions = array_merge($curlOptions,
+                static::$_curlOptions);
         }
 
         //	Add/override user options
-        if ( !empty( $curlOptions ) )
-        {
-            foreach ( $curlOptions as $_key => $_value )
-            {
+        if (!empty($curlOptions)) {
+            foreach ($curlOptions as $_key => $_value) {
                 $_curlOptions[$_key] = $_value;
             }
         }
 
-        if ( null !== static::$_userName || null !== static::$_password )
-        {
+        if (null !== static::$_userName || null !== static::$_password) {
             $_curlOptions[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;
             $_curlOptions[CURLOPT_USERPWD] = static::$_userName . ':' . static::$_password;
         }
 
         //  Set verb-specific CURL options
-        switch ( $method )
-        {
+        switch ($method) {
             case static::PUT:
-                $_payload = json_encode( !empty( $payload ) ? $payload : array() );
+                $_payload = json_encode(!empty($payload) ? $payload : []);
 
                 $_tmpFile = tmpfile();
-                fwrite( $_tmpFile, $_payload );
-                rewind( $_tmpFile );
+                fwrite($_tmpFile, $_payload);
+                rewind($_tmpFile);
 
                 $_curlOptions[CURLOPT_PUT] = true;
                 $_curlOptions[CURLOPT_INFILE] = $_tmpFile;
-                $_curlOptions[CURLOPT_INFILESIZE] = mb_strlen( $_payload );
+                $_curlOptions[CURLOPT_INFILESIZE] = mb_strlen($_payload);
                 break;
 
             case static::POST:
@@ -279,78 +269,63 @@ class Curl extends Verbs
         }
 
         //  Non-standard verbs need custom request option set...
-        if ( !in_array( $method, array(static::GET, static::POST, static::HEAD, static::PUT) ) )
-        {
+        if (!in_array($method, [static::GET, static::POST, static::HEAD, static::PUT])) {
             $_curlOptions[CURLOPT_CUSTOMREQUEST] = $method;
         }
 
-        if ( null !== static::$_hostPort && !isset( $_curlOptions[CURLOPT_PORT] ) )
-        {
+        if (null !== static::$_hostPort && !isset($_curlOptions[CURLOPT_PORT])) {
             $_curlOptions[CURLOPT_PORT] = static::$_hostPort;
         }
 
         //	Set our collected options
-        curl_setopt_array( $_curl, $_curlOptions );
+        curl_setopt_array($_curl, $_curlOptions);
 
         //	Make the call!
-        $_result = curl_exec( $_curl );
+        $_result = curl_exec($_curl);
 
-        static::$_info = curl_getinfo( $_curl );
-        static::$_lastHttpCode = ArrayUtils::get( static::$_info, 'http_code' );
-        static::$_responseHeaders = curl_getinfo( $_curl, CURLINFO_HEADER_OUT );
-        static::$_responseHeadersSize = curl_getinfo( $_curl, CURLINFO_HEADER_SIZE );
+        static::$_info = curl_getinfo($_curl);
+        static::$_lastHttpCode = ArrayUtils::get(static::$_info, 'http_code');
+        static::$_responseHeaders = curl_getinfo($_curl, CURLINFO_HEADER_OUT);
+        static::$_responseHeadersSize = curl_getinfo($_curl, CURLINFO_HEADER_SIZE);
 
-        if ( false === $_result )
-        {
-            static::$_error = array(
-                'code'    => curl_errno( $_curl ),
-                'message' => curl_error( $_curl ),
-            );
-        }
-        elseif ( true === $_result )
-        {
+        if (false === $_result) {
+            static::$_error = [
+                'code'    => curl_errno($_curl),
+                'message' => curl_error($_curl),
+            ];
+        } elseif (true === $_result) {
             //	Worked, but no data...
             $_result = null;
-        }
-        else
-        {
+        } else {
             //      Split up the body and headers if requested
-            if ( $_curlOptions[CURLOPT_HEADER] )
-            {
-                if ( false === strpos( $_result, "\r\n\r\n" ) || empty( static::$_responseHeadersSize ) )
-                {
+            if ($_curlOptions[CURLOPT_HEADER]) {
+                if (false === strpos($_result, "\r\n\r\n") || empty(static::$_responseHeadersSize)) {
                     $_headers = $_result;
                     $_body = null;
-                }
-                else
-                {
-                    $_headers = substr( $_result, 0, static::$_responseHeadersSize );
-                    $_body = substr( $_result, static::$_responseHeadersSize );
+                } else {
+                    $_headers = substr($_result, 0, static::$_responseHeadersSize);
+                    $_body = substr($_result, static::$_responseHeadersSize);
                 }
 
-                if ( $_headers )
-                {
-                    static::$_lastResponseHeaders = array();
-                    $_raw = explode( "\r\n", $_headers );
+                if ($_headers) {
+                    static::$_lastResponseHeaders = [];
+                    $_raw = explode("\r\n", $_headers);
 
-                    if ( !empty( $_raw ) )
-                    {
+                    if (!empty($_raw)) {
                         $_first = true;
 
-                        foreach ( $_raw as $_line )
-                        {
+                        foreach ($_raw as $_line) {
                             //	Skip the first line (HTTP/1.x response)
-                            if ( $_first || preg_match( '/^HTTP\/[0-9\.]+ [0-9]+/', $_line ) )
-                            {
+                            if ($_first || preg_match('/^HTTP\/[0-9\.]+ [0-9]+/', $_line)) {
                                 $_first = false;
                                 continue;
                             }
 
-                            $_parts = explode( ':', $_line, 2 );
+                            $_parts = explode(':', $_line, 2);
 
-                            if ( !empty( $_parts ) )
-                            {
-                                static::$_lastResponseHeaders[trim( $_parts[0] )] = count( $_parts ) > 1 ? trim( $_parts[1] ) : null;
+                            if (!empty($_parts)) {
+                                static::$_lastResponseHeaders[trim($_parts[0])] =
+                                    count($_parts) > 1 ? trim($_parts[1]) : null;
                             }
                         }
                     }
@@ -360,34 +335,30 @@ class Curl extends Verbs
             }
 
             //	Attempt to auto-decode inbound JSON
-            if ( !empty( $_result ) && false !== stripos( ArrayUtils::get( static::$_info, 'content_type' ), 'application/json', 0 ) )
-            {
-                try
-                {
-                    if ( false !== ( $_json = @json_decode( $_result, static::$_decodeToArray ) ) )
-                    {
+            if (!empty($_result) && false !== stripos(ArrayUtils::get(static::$_info, 'content_type'),
+                    'application/json',
+                    0)
+            ) {
+                try {
+                    if (false !== ($_json = @json_decode($_result, static::$_decodeToArray))) {
                         $_result = $_json;
                     }
-                }
-                catch ( \Exception $_ex )
-                {
+                } catch (\Exception $_ex) {
                     //	Ignored
                 }
             }
 
             //	Don't confuse error with empty data...
-            if ( false === $_result )
-            {
+            if (false === $_result) {
                 $_result = null;
             }
         }
 
-        @curl_close( $_curl );
+        @curl_close($_curl);
 
         //	Close temp file if any
-        if ( null !== $_tmpFile )
-        {
-            @fclose( $_tmpFile );
+        if (null !== $_tmpFile) {
+            @fclose($_tmpFile);
         }
 
         return $_result;
@@ -398,8 +369,7 @@ class Curl extends Verbs
      */
     public static function getErrorAsString()
     {
-        if ( !empty( static::$_error ) )
-        {
+        if (!empty(static::$_error)) {
             return static::$_error['message'] . ' (' . static::$_error['code'] . ')';
         }
 
@@ -411,7 +381,7 @@ class Curl extends Verbs
      *
      * @return void
      */
-    protected static function _setError( $error )
+    protected static function _setError($error)
     {
         static::$_error = $error;
     }
@@ -429,7 +399,7 @@ class Curl extends Verbs
      *
      * @return void
      */
-    public static function setHostPort( $hostPort )
+    public static function setHostPort($hostPort)
     {
         static::$_hostPort = $hostPort;
     }
@@ -447,7 +417,7 @@ class Curl extends Verbs
      *
      * @return void
      */
-    protected static function _setInfo( $info )
+    protected static function _setInfo($info)
     {
         static::$_info = $info;
     }
@@ -458,9 +428,9 @@ class Curl extends Verbs
      *
      * @return array
      */
-    public static function getInfo( $key = null, $defaultValue = null )
+    public static function getInfo($key = null, $defaultValue = null)
     {
-        return null === $key ? static::$_info : ArrayUtils::get( static::$_info, $key, $defaultValue );
+        return null === $key ? static::$_info : ArrayUtils::get(static::$_info, $key, $defaultValue);
     }
 
     /**
@@ -468,7 +438,7 @@ class Curl extends Verbs
      *
      * @return void
      */
-    public static function setPassword( $password )
+    public static function setPassword($password)
     {
         static::$_password = $password;
     }
@@ -486,7 +456,7 @@ class Curl extends Verbs
      *
      * @return void
      */
-    public static function setUserName( $userName )
+    public static function setUserName($userName)
     {
         static::$_userName = $userName;
     }
@@ -504,7 +474,7 @@ class Curl extends Verbs
      *
      * @return void
      */
-    public static function setCurlOptions( $curlOptions )
+    public static function setCurlOptions($curlOptions)
     {
         static::$_curlOptions = $curlOptions;
     }
@@ -520,7 +490,7 @@ class Curl extends Verbs
     /**
      * @param int $lastHttpCode
      */
-    protected static function _setLastHttpCode( $lastHttpCode )
+    protected static function _setLastHttpCode($lastHttpCode)
     {
         static::$_lastHttpCode = $lastHttpCode;
     }
@@ -536,7 +506,7 @@ class Curl extends Verbs
     /**
      * @param boolean $debug
      */
-    public static function setDebug( $debug )
+    public static function setDebug($debug)
     {
         static::$_debug = $debug;
     }
@@ -552,7 +522,7 @@ class Curl extends Verbs
     /**
      * @param boolean $autoDecodeJson
      */
-    public static function setAutoDecodeJson( $autoDecodeJson )
+    public static function setAutoDecodeJson($autoDecodeJson)
     {
         static::$_autoDecodeJson = $autoDecodeJson;
     }
@@ -568,7 +538,7 @@ class Curl extends Verbs
     /**
      * @param boolean $decodeToArray
      */
-    public static function setDecodeToArray( $decodeToArray )
+    public static function setDecodeToArray($decodeToArray)
     {
         static::$_decodeToArray = $decodeToArray;
     }
@@ -597,44 +567,41 @@ class Curl extends Verbs
      *
      * @return string
      */
-    public static function currentUrl( $includeQuery = true, $includePath = true )
+    public static function currentUrl($includeQuery = true, $includePath = true)
     {
         //	Are we SSL? Check for load balancer protocol as well...
-        $_port = intval( ArrayUtils::get( $_SERVER, 'HTTP_X_FORWARDED_PORT', ArrayUtils::get( $_SERVER, 'SERVER_PORT', 80 ) ) );
-        $_protocol = ArrayUtils::get( $_SERVER, 'HTTP_X_FORWARDED_PROTO', 'http' . ( ArrayUtils::getBool( $_SERVER, 'HTTPS' ) ? 's' : null ) ) . '://';
-        $_host = ArrayUtils::get( $_SERVER, 'HTTP_X_FORWARDED_HOST', ArrayUtils::get( $_SERVER, 'HTTP_HOST', gethostname() ) );
-        $_parts = parse_url( $_protocol . $_host . ArrayUtils::get( $_SERVER, 'REQUEST_URI' ) );
+        $_port =
+            intval(ArrayUtils::get($_SERVER, 'HTTP_X_FORWARDED_PORT', ArrayUtils::get($_SERVER, 'SERVER_PORT', 80)));
+        $_protocol = ArrayUtils::get($_SERVER,
+                'HTTP_X_FORWARDED_PROTO',
+                'http' . (ArrayUtils::getBool($_SERVER, 'HTTPS') ? 's' : null)) . '://';
+        $_host =
+            ArrayUtils::get($_SERVER, 'HTTP_X_FORWARDED_HOST', ArrayUtils::get($_SERVER, 'HTTP_HOST', gethostname()));
+        $_parts = parse_url($_protocol . $_host . ArrayUtils::get($_SERVER, 'REQUEST_URI'));
 
-        if ( ( empty( $_port ) || !is_numeric( $_port ) ) && null !== ( $_parsePort = ArrayUtils::get( $_parts, 'port' ) ) )
-        {
-            $_port = @intval( $_parsePort );
+        if ((empty($_port) || !is_numeric($_port)) && null !== ($_parsePort = ArrayUtils::get($_parts, 'port'))) {
+            $_port = @intval($_parsePort);
         }
 
-        if ( null !== ( $_query = ArrayUtils::get( $_parts, 'query' ) ) )
-        {
-            $_query = static::urlSeparator( $_query ) . http_build_query( explode( '&', $_query ) );
+        if (null !== ($_query = ArrayUtils::get($_parts, 'query'))) {
+            $_query = static::urlSeparator($_query) . http_build_query(explode('&', $_query));
         }
 
-        if ( false !== strpos( $_host, ':' ) || ( $_protocol == 'https://' && $_port == 443 ) || ( $_protocol == 'http://' && $_port == 80 ) )
-        {
+        if (false !== strpos($_host,
+                ':') || ($_protocol == 'https://' && $_port == 443) || ($_protocol == 'http://' && $_port == 80)
+        ) {
             $_port = null;
-        }
-        else
-        {
+        } else {
             $_port = ':' . $_port;
         }
 
-        if ( false !== strpos( $_host, ':' ) )
-        {
+        if (false !== strpos($_host, ':')) {
             $_port = null;
         }
 
         $_currentUrl =
-            $_protocol .
-            $_host .
-            $_port .
-            ( true === $includePath ? ArrayUtils::get( $_parts, 'path' ) : null ) .
-            ( true === $includeQuery ? $_query : null );
+            $_protocol . $_host . $_port . (true === $includePath ? ArrayUtils::get($_parts, 'path')
+                : null) . (true === $includeQuery ? $_query : null);
 
         return $_currentUrl;
     }
@@ -654,11 +621,11 @@ class Curl extends Verbs
      *
      * @return string an URL-encoded string
      */
-    public static function buildUrl( $url, $payload = array(), $numericPrefix = null, $argSeparator = '&', $encodingType = PHP_QUERY_RFC1738 )
+    public static function buildUrl($url, $payload = [], $numericPrefix = null, $argSeparator = '&', $encodingType = PHP_QUERY_RFC1738)
     {
-        $_query = \http_build_query( $payload, $numericPrefix, $argSeparator, $encodingType );
+        $_query = \http_build_query($payload, $numericPrefix, $argSeparator, $encodingType);
 
-        return $url . static::urlSeparator( $url, $argSeparator ) . $_query;
+        return $url . static::urlSeparator($url, $argSeparator) . $_query;
     }
 
     /**
@@ -669,9 +636,9 @@ class Curl extends Verbs
      *
      * @return string
      */
-    public static function urlSeparator( $url, $argSeparator = '&' )
+    public static function urlSeparator($url, $argSeparator = '&')
     {
-        return ( false === strpos( $url, '?', 0 ) ? '?' : $argSeparator );
+        return (false === strpos($url, '?', 0) ? '?' : $argSeparator);
     }
 
 }

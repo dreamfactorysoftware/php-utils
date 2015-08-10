@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 /**
  * Scalar utility class
@@ -15,26 +14,22 @@ class Scalar
      *
      * @return bool
      */
-    public static function boolval( $value )
+    public static function boolval($value)
     {
-        if ( \is_bool( $value ) )
-        {
+        if (\is_bool($value)) {
             return $value;
         }
 
-        $_value = \strtolower( (string)$value );
+        $_value = \strtolower((string)$value);
 
         //	FILTER_VALIDATE_BOOLEAN doesn't catch 'Y' or 'N', so convert to full words...
-        if ( 'y' == $_value )
-        {
+        if ('y' == $_value) {
             $_value = 'yes';
-        }
-        elseif ( 'n' == $_value )
-        {
+        } elseif ('n' == $_value) {
             $_value = 'no';
         }
 
-        return \filter_var( $_value, FILTER_VALIDATE_BOOLEAN );
+        return \filter_var($_value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -47,12 +42,10 @@ class Scalar
      *
      * @return bool
      */
-    public static function is_array( $possibleArray, $_ = null )
+    public static function is_array($possibleArray, $_ = null)
     {
-        foreach ( func_get_args() as $_argument )
-        {
-            if ( !is_array( $_argument ) )
-            {
+        foreach (func_get_args() as $_argument) {
+            if (!is_array($_argument)) {
                 return false;
             }
         }
@@ -73,9 +66,9 @@ class Scalar
      *
      * @return bool
      */
-    public static function in_array( $needle, $haystack )
+    public static function in_array($needle, $haystack)
     {
-        return static::in( func_get_args() );
+        return static::in(func_get_args());
     }
 
     /**
@@ -87,24 +80,18 @@ class Scalar
      *
      * @return array
      */
-    public static function array_prepend( $array, $string, $deep = false )
+    public static function array_prepend($array, $string, $deep = false)
     {
-        if ( empty( $array ) || empty( $string ) )
-        {
+        if (empty($array) || empty($string)) {
             return $array;
         }
 
-        foreach ( $array as $key => $element )
-        {
-            if ( is_array( $element ) )
-            {
-                if ( $deep )
-                {
-                    $array[$key] = self::array_prepend( $element, $string, $deep );
+        foreach ($array as $key => $element) {
+            if (is_array($element)) {
+                if ($deep) {
+                    $array[$key] = self::array_prepend($element, $string, $deep);
                 }
-            }
-            else
-            {
+            } else {
                 $array[$key] = $string . $element;
             }
         }
@@ -121,10 +108,9 @@ class Scalar
      */
     public static function argsToArray()
     {
-        $_array = array();
+        $_array = [];
 
-        foreach ( func_get_args() as $_key => $_argument )
-        {
+        foreach (func_get_args() as $_key => $_argument) {
             $_array[$_key] = $_argument;
         }
 
@@ -154,10 +140,8 @@ class Scalar
         $_args = func_num_args();
         $_haystack = func_get_args();
 
-        for ( $_i = 0; $_i < $_args; $_i++ )
-        {
-            if ( null !== ( $_default = IfSet::get( $_haystack, $_i ) ) )
-            {
+        for ($_i = 0; $_i < $_args; $_i++) {
+            if (null !== ($_default = IfSet::get($_haystack, $_i))) {
                 break;
             }
         }
@@ -179,11 +163,10 @@ class Scalar
     {
         $_haystack = func_get_args();
 
-        if ( !empty( $_haystack ) && count( $_haystack ) > 1 )
-        {
-            $_needle = array_shift( $_haystack );
+        if (!empty($_haystack) && count($_haystack) > 1) {
+            $_needle = array_shift($_haystack);
 
-            return in_array( $_needle, $_haystack );
+            return in_array($_needle, $_haystack);
         }
 
         return false;

@@ -58,8 +58,8 @@ class Json
      */
     public static function decode($json, $asArray = true, $depth = 512, $options = 0)
     {
-        if (false === ($_data = json_decode($json, $asArray, $depth, $options)) ||
-            JSON_ERROR_NONE != json_last_error()
+        if (false === ($_data =
+                json_decode($json, $asArray, $depth, $options)) || JSON_ERROR_NONE != json_last_error()
         ) {
             throw new \InvalidArgumentException('The data could not be decoded: ' . json_last_error_msg());
         }

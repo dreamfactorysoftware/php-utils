@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 
@@ -28,7 +27,7 @@ class File
     /**
      * @param string $fileName
      */
-    public function __construct( $fileName )
+    public function __construct($fileName)
     {
         $this->_name = $fileName;
     }
@@ -38,7 +37,7 @@ class File
      */
     public function validHandle()
     {
-        return ( false !== $this->_resource );
+        return (false !== $this->_resource);
     }
 
     /**
@@ -48,12 +47,11 @@ class File
     {
         $this->close();
 
-        if ( !file_exists( $this->_name ) )
-        {
-            throw new FileNotFoundException( $this->_name );
+        if (!file_exists($this->_name)) {
+            throw new FileNotFoundException($this->_name);
         }
 
-        $this->_resource = @fopen( $this->_name, 'r' );
+        $this->_resource = @fopen($this->_name, 'r');
 
         return $this->validHandle();
     }
@@ -63,9 +61,8 @@ class File
      */
     public function close()
     {
-        if ( $this->_resource )
-        {
-            @fclose( $this->_resource );
+        if ($this->_resource) {
+            @fclose($this->_resource);
         }
 
         $this->_resource = false;
@@ -76,7 +73,7 @@ class File
      */
     public function filesize()
     {
-        return $this->validHandle() ? filesize( $this->_name ) : false;
+        return $this->validHandle() ? filesize($this->_name) : false;
     }
 
     /**
@@ -84,7 +81,7 @@ class File
      */
     public function atime()
     {
-        return $this->validHandle() ? fileatime( $this->_name ) : false;
+        return $this->validHandle() ? fileatime($this->_name) : false;
     }
 
     /**
@@ -92,7 +89,7 @@ class File
      */
     public function fileowner()
     {
-        return $this->validHandle() ? fileowner( $this->_name ) : false;
+        return $this->validHandle() ? fileowner($this->_name) : false;
     }
 
     /**
@@ -100,7 +97,7 @@ class File
      */
     public function filegroup()
     {
-        return $this->validHandle() ? filegroup( $this->_name ) : false;
+        return $this->validHandle() ? filegroup($this->_name) : false;
     }
 
     /**
@@ -109,9 +106,9 @@ class File
      *
      * @return int|bool
      */
-    public function fseek( $offset = 0, $whence = SEEK_SET )
+    public function fseek($offset = 0, $whence = SEEK_SET)
     {
-        return $this->validHandle() ? fseek( $this->_resource, $offset, $whence ) : false;
+        return $this->validHandle() ? fseek($this->_resource, $offset, $whence) : false;
     }
 
     /**
@@ -119,7 +116,7 @@ class File
      */
     public function ftell()
     {
-        return $this->validHandle() ? ftell( $this->_resource ) : false;
+        return $this->validHandle() ? ftell($this->_resource) : false;
     }
 
     /**
@@ -129,9 +126,9 @@ class File
      *
      * @return string|bool
      */
-    public function fgets( $length = null )
+    public function fgets($length = null)
     {
-        return $this->validHandle() ? fgets( $this->_resource, $length ) : false;
+        return $this->validHandle() ? fgets($this->_resource, $length) : false;
     }
 
     /**

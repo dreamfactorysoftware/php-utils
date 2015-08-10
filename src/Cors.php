@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Psr\Log\LoggerInterface;
@@ -99,24 +98,23 @@ class Cors
      * @param string  $configFile The CORS config file, if any
      * @param Request $request    Optional request object. If not given, one will be created
      */
-    public function __construct( $configFile = null, $request = null )
+    public function __construct($configFile = null, $request = null)
     {
         //  Set defaults
         $this->_configFile = $configFile;
         $this->_request = $request ?: Request::createFromGlobals();
-        $this->_headers = explode( ',', static::DEFAULT_ALLOWED_HEADERS );
-        $this->_verbs = explode( ',', static::DEFAULT_ALLOWED_VERBS );
+        $this->_headers = explode(',', static::DEFAULT_ALLOWED_HEADERS);
+        $this->_verbs = explode(',', static::DEFAULT_ALLOWED_VERBS);
 
         //  See if we even need CORS
-        $this->_requestOrigin = trim( $this->_request->headers->get( 'http-origin' ) );
+        $this->_requestOrigin = trim($this->_request->headers->get('http-origin'));
         $this->_requestVerb = $this->_request->getMethod();
-        $this->_corsRequest = !empty( $this->_requestOrigin );
+        $this->_corsRequest = !empty($this->_requestOrigin);
 
         //  Load whitelist from file
         // if there...
-        if ( $this->_configFile )
-        {
-            $this->_whitelist = JsonFile::decodeFile( $configFile );
+        if ($this->_configFile) {
+            $this->_whitelist = JsonFile::decodeFile($configFile);
         }
     }
 
@@ -128,143 +126,119 @@ class Cors
      *
      * @return bool|array
      */
-    public function addHeaders( $whitelist = array(), $returnHeaders = false, $sendHeaders = true )
+    public function addHeaders($whitelist = [], $returnHeaders = false, $sendHeaders = true)
     {
-        static $_cache = array();
+        static $_cache = [];
 
         //	Reset the cache before processing...
-        if ( false === $whitelist )
-        {
-            if ( !empty( $_cache ) )
-            {
-                $_cache = array();
+        if (false === $whitelist) {
+            if (!empty($_cache)) {
+                $_cache = [];
 
-                $this->_logger->debug( 'internal cache reset' );
+                $this->_logger->debug('internal cache reset');
             }
 
             return true;
         }
 
         //	Find out if we actually received an origin header
-        if ( null === ( $_origin = trim( strtolower( $this->_request->headers->get( 'http-origin' ) ) ) ) )
-        {
+        if (null === ($_origin = trim(strtolower($this->_request->headers->get('http-origin'))))) {
             //  No origin header, no CORS...
-            $this->_logger->debug( 'no origin received.' );
+            $this->_logger->debug('no origin received.');
 
-            return $returnHeaders ? array() : false;
+            return $returnHeaders ? [] : false;
         }
 
         //  Only bail if origin is empty or == 'file://'. Ya know, for Javascript!
-        if ( 'file://' == $_origin || empty( $_origin ) )
-        {
-            return $returnHeaders ? array() : !empty( $_origin );
+        if ('file://' == $_origin || empty($_origin)) {
+            return $returnHeaders ? [] : !empty($_origin);
         }
 
         $_isStar = false;
         $_requestUri = $this->_request->getSchemeAndHttpHost();
 
-        $this->_logger->debug( 'origin received: ' . $_origin );
+        $this->_logger->debug('origin received: ' . $_origin);
 
-        if ( false === ( $_originParts = Uri::parse( $_origin ) ) )
-        {
+        if (false === ($_originParts = Uri::parse($_origin))) {
             //	Not parse-able, set to itself, check later (testing from local files - no session)?
-            $this->_logger->warning( 'unable to parse received origin: [' . $_origin . ']' );
+            $this->_logger->warning('unable to parse received origin: [' . $_origin . ']');
 
             $_originParts = $_origin;
         }
 
-        $_originUri =
-            is_array( $_originParts )
-                ? Uri::normalize( $_originParts )
-                : static::ALLOW_ALL;
+        $_originUri = is_array($_originParts) ? Uri::normalize($_originParts) : static::ALLOW_ALL;
 
-        $_key = sha1( $_requestUri . '_' . $_originUri );
+        $_key = sha1($_requestUri . '_' . $_originUri);
 
-        $this->_logger->debug( 'origin URI "' . $_originUri . '" assigned key "' . $_key . '"' );
+        $this->_logger->debug('origin URI "' . $_originUri . '" assigned key "' . $_key . '"');
 
         //  If we have a cache, refresh local from there
-        if ( $this->_cache && empty( $_cache ) )
-        {
-            if ( false === ( $_cache = $this->_cache->fetch( $this->_id . '.headers' ) ) )
-            {
-                $_cache = array();
+        if ($this->_cache && empty($_cache)) {
+            if (false === ($_cache = $this->_cache->fetch($this->_id . '.headers'))) {
+                $_cache = [];
             }
         }
 
         //	Not in cache, check it out...
-        if ( !array_key_exists( $_key, $_cache ) )
-        {
-            if ( false === ( $_allowedVerbs = $this->_checkOrigin( $_originParts, array($_requestUri), $_isStar ) ) )
-            {
-                $this->_logger->error(
-                    'unauthorized origin rejected > Source: ' . $_requestUri . ' > Origin: ' . $_originUri
-                );
+        if (!array_key_exists($_key, $_cache)) {
+            if (false === ($_allowedVerbs = $this->_checkOrigin($_originParts, [$_requestUri], $_isStar))) {
+                $this->_logger->error('unauthorized origin rejected > Source: ' . $_requestUri . ' > Origin: ' . $_originUri);
 
                 /**
                  * No sir, I didn't like it.
                  *
                  * @link http://www.youtube.com/watch?v=VRaoHi_xcWk
                  */
-                header( 'HTTP/1.1 403 Forbidden' );
+                header('HTTP/1.1 403 Forbidden');
 
-                exit( 0 );
+                exit(0);
             }
 
-            $_cache[$_key] = array(
+            $_cache[$_key] = [
                 'origin-uri'    => $_originUri,
                 'allowed-verbs' => $_allowedVerbs,
-                'cors-headers'  => array(),
-            );
-        }
-        else
-        {
-            $_originUri = IfSet::get( $_cache[$_key], 'origin-uri' );
-            $_allowedVerbs = IfSet::get( $_cache[$_key], 'allowed-verbs' );
+                'cors-headers'  => [],
+            ];
+        } else {
+            $_originUri = IfSet::get($_cache[$_key], 'origin-uri');
+            $_allowedVerbs = IfSet::get($_cache[$_key], 'allowed-verbs');
         }
 
         //  Rebuild headers
-        $_headers = array(
+        $_headers = [
             'Access-Control-Allow-Credentials' => 'true',
-            'Access-Control-Allow-Headers'     => implode( ',', $this->_headers ),
-            'Access-Control-Allow-Methods'     => implode( ', ', $_allowedVerbs ),
+            'Access-Control-Allow-Headers'     => implode(',', $this->_headers),
+            'Access-Control-Allow-Methods'     => implode(', ', $_allowedVerbs),
             'Access-Control-Allow-Origin'      => $_isStar ? static::ALLOW_ALL : $_originUri,
             'Access-Control-Max-Age'           => static::DEFAULT_MAX_AGE,
-        );
+        ];
 
         //	Store in cache...
-        $_cache[$_key] = array(
+        $_cache[$_key] = [
             'origin-uri'    => $_originUri,
             'allowed-verbs' => $_allowedVerbs,
-            'cors-headers'  => $_headers
-        );
+            'cors-headers'  => $_headers,
+        ];
 
-        $this->_cache && $this->_cache->save( $this->_id . '.headers', $_cache );
+        $this->_cache && $this->_cache->save($this->_id . '.headers', $_cache);
 
-        if ( $returnHeaders )
-        {
+        if ($returnHeaders) {
             return $_headers;
         }
 
         //  Send all the headers
-        if ( $sendHeaders )
-        {
+        if ($sendHeaders) {
             $_out = null;
 
-            foreach ( $_headers as $_key => $_value )
-            {
-                $_key = implode( '-', array_map( 'ucfirst', explode( '-', $_key ) ) );
+            foreach ($_headers as $_key => $_value) {
+                $_key = implode('-', array_map('ucfirst', explode('-', $_key)));
 
-                header( $_key . ': ' . $_value );
+                header($_key . ': ' . $_value);
 
                 $_out .= $_key . ': ' . $_value . PHP_EOL;
             }
 
-            $this->_logger->debug(
-                'CORS: headers sent' . PHP_EOL .
-                '*=== Headers Start ===*' . PHP_EOL .
-                $_out .
-                '*=== Headers End ===*' . PHP_EOL
-            );
+            $this->_logger->debug('CORS: headers sent' . PHP_EOL . '*=== Headers Start ===*' . PHP_EOL . $_out . '*=== Headers End ===*' . PHP_EOL);
         }
 
         return true;
@@ -277,35 +251,29 @@ class Cors
      *
      * @return bool|array false if not allowed, otherwise array of verbs allowed
      */
-    protected function _checkOrigin( $origin, array $additional = array(), &$isStar = false )
+    protected function _checkOrigin($origin, array $additional = [], &$isStar = false)
     {
-        $_checklist = array_merge( $this->_whitelist, $additional );
+        $_checklist = array_merge($this->_whitelist, $additional);
 
-        foreach ( $_checklist as $_hostInfo )
-        {
+        foreach ($_checklist as $_hostInfo) {
             //  Always start with defaults
             $_allowedVerbs = $this->_verbs;
             $_whiteGuy = $_hostInfo;
 
-            if ( is_array( $_hostInfo ) )
-            {
+            if (is_array($_hostInfo)) {
                 //	If is_enabled prop not there, assuming enabled.
-                if ( !Scalar::boolval( IfSet::get( $_hostInfo, 'is_enabled', true ) ) )
-                {
+                if (!Scalar::boolval(IfSet::get($_hostInfo, 'is_enabled', true))) {
                     continue;
                 }
 
-                if ( null === ( $_whiteGuy = IfSet::get( $_hostInfo, 'host' ) ) )
-                {
-                    $this->_logger->error( 'whitelist entry missing "host" parameter' );
+                if (null === ($_whiteGuy = IfSet::get($_hostInfo, 'host'))) {
+                    $this->_logger->error('whitelist entry missing "host" parameter');
 
                     continue;
                 }
 
-                if ( isset( $_hostInfo['verbs'] ) )
-                {
-                    if ( !in_array( Verbs::OPTIONS, $_hostInfo['verbs'] ) )
-                    {
+                if (isset($_hostInfo['verbs'])) {
+                    if (!in_array(Verbs::OPTIONS, $_hostInfo['verbs'])) {
                         // add OPTION to allowed list
                         $_hostInfo['verbs'][] = Verbs::OPTIONS;
                     }
@@ -315,25 +283,22 @@ class Cors
             }
 
             //	All allowed?
-            if ( static::ALLOW_ALL == $_whiteGuy )
-            {
+            if (static::ALLOW_ALL == $_whiteGuy) {
                 $isStar = true;
 
                 return $_allowedVerbs;
             }
 
-            if ( false === ( $_whiteParts = Uri::parse( $_whiteGuy ) ) )
-            {
-                $this->_logger->error( 'unable to parse "' . $_whiteGuy . '" whitelist entry' );
+            if (false === ($_whiteParts = Uri::parse($_whiteGuy))) {
+                $this->_logger->error('unable to parse "' . $_whiteGuy . '" whitelist entry');
 
                 continue;
             }
 
-            $this->_logger->debug( 'whitelist "' . $_whiteGuy . '" > parts: ' . print_r( $_whiteParts, true ) );
+            $this->_logger->debug('whitelist "' . $_whiteGuy . '" > parts: ' . print_r($_whiteParts, true));
 
             //	Check for un-parsed origin, 'null' sent when testing js files locally
-            if ( is_array( $origin ) && Uri::compare( $origin, $_whiteParts ) )
-            {
+            if (is_array($origin) && Uri::compare($origin, $_whiteParts)) {
                 //	This origin is on the whitelist
                 return $_allowedVerbs;
             }
@@ -348,33 +313,28 @@ class Cors
     protected function _loadConfig()
     {
         //  Cached? Pull it out
-        if ( $this->_cache && false !== ( $_list = $this->_cache->fetch( $this->_id ) ) )
-        {
+        if ($this->_cache && false !== ($_list = $this->_cache->fetch($this->_id))) {
             $_whitelist = $_list;
-        }
-        else
-        {
+        } else {
             //  Empty whitelist...
-            $_whitelist = array();
+            $_whitelist = [];
 
             //	Get CORS data from config file
             $_configFile = $this->_configPath . static::DEFAULT_CONFIG_FILE;
 
-            if ( false !== ( $_config = Includer::includeIfExists( $_configFile ) ) )
-            {
-                if ( false === ( $_whitelist = json_decode( $_config, true ) ) || JSON_ERROR_NONE != json_last_error() )
-                {
-                    throw new \RuntimeException( 'The CORS configuration file is corrupt. Cannot continue.' );
+            if (false !== ($_config = Includer::includeIfExists($_configFile))) {
+                if (false === ($_whitelist = json_decode($_config, true)) || JSON_ERROR_NONE != json_last_error()) {
+                    throw new \RuntimeException('The CORS configuration file is corrupt. Cannot continue.');
                 }
 
-                $this->_logger->debug( 'CORS: configuration loaded. Whitelist = ' . print_r( $_whitelist, true ) );
+                $this->_logger->debug('CORS: configuration loaded. Whitelist = ' . print_r($_whitelist, true));
             }
         }
 
         //  Cache/re-cache if we can
-        $this->_cache &&
-        $this->_cache->save( static::WHITELIST_KEY, $_whitelist, static::CACHE_TTL ) &&
-        $this->_logger->debug( 'whitelist cached' );
+        $this->_cache && $this->_cache->save(static::WHITELIST_KEY,
+            $_whitelist,
+            static::CACHE_TTL) && $this->_logger->debug('whitelist cached');
 
         //  Set member
         $this->_whitelist = $_whitelist;
@@ -393,7 +353,7 @@ class Cors
      *
      * @return Cors
      */
-    public function setLogger( LoggerInterface $logger )
+    public function setLogger(LoggerInterface $logger)
     {
         $this->_logger = $logger;
 
@@ -413,7 +373,7 @@ class Cors
      *
      * @return Cors
      */
-    public function setRequest( $request )
+    public function setRequest($request)
     {
         $this->_request = $request;
 
@@ -441,7 +401,7 @@ class Cors
      *
      * @return Cors
      */
-    public function setVerbs( $verbs )
+    public function setVerbs($verbs)
     {
         $this->_verbs = $verbs;
 
@@ -461,7 +421,7 @@ class Cors
      *
      * @return Cors
      */
-    public function setWhitelist( $whitelist )
+    public function setWhitelist($whitelist)
     {
         $this->_whitelist = $whitelist;
 
@@ -481,7 +441,7 @@ class Cors
      *
      * @return Cors
      */
-    public function setConfigFile( $configFile )
+    public function setConfigFile($configFile)
     {
         $this->_configFile = $configFile;
 

@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 /**
  * DataReader
@@ -9,21 +8,21 @@ namespace DreamFactory\Library\Utility;
  *
  * @property string $queryString
  *
- * @method bool bindParam( $parameter, &$variable, $data_type = \PDO::PARAM_STR, $length = null, $driverOptions = null )
- * @method bool bindColumn( $column, &$parameter, $type = null, $maxLength = null, $driverData = null )
- * @method bool bindValue( $parameter, $value, $dataType = \PDO::PARAM_STR )
- * @method mixed fetch( $fetchStyle = null, $cursorOrientation = \PDO::FETCH_ORI_NEXT, $cursorOffset = 0 )
- * @method string fetchColumn( $columnNumber = 0 )
- * @method array fetchAll ( $fetchStyle = null, $fetchArgument = null, array $ctorArgs = 'array()' )
- * @method mixed fetchObject( $className = '\\stdClass', array $ctorArgs = null )
+ * @method bool bindParam($parameter, &$variable, $data_type = \PDO::PARAM_STR, $length = null, $driverOptions = null)
+ * @method bool bindColumn($column, &$parameter, $type = null, $maxLength = null, $driverData = null)
+ * @method bool bindValue($parameter, $value, $dataType = \PDO::PARAM_STR)
+ * @method mixed fetch($fetchStyle = null, $cursorOrientation = \PDO::FETCH_ORI_NEXT, $cursorOffset = 0)
+ * @method string fetchColumn($columnNumber = 0)
+ * @method array fetchAll ($fetchStyle = null, $fetchArgument = null, array $ctorArgs = 'array()')
+ * @method mixed fetchObject($className = '\\stdClass', array $ctorArgs = null)
  * @method string errorCode()
  * @method array errorInfo()
- * @method bool setAttribute( $attribute, $value )
- * @method mixed getAttribute( $attribute )
+ * @method bool setAttribute($attribute, $value)
+ * @method mixed getAttribute($attribute)
  * @method int rowCount()
  * @method int columnCount()
- * @method array|bool getColumnMeta( $column )
- * @method bool setFetchMode( $mode )
+ * @method array|bool getColumnMeta($column)
+ * @method bool setFetchMode($mode)
  */
 class DataReader implements \Iterator, \Countable
 {
@@ -63,10 +62,9 @@ class DataReader implements \Iterator, \Countable
     /**
      * @param \PDOStatement $statement
      */
-    public function __construct( \PDOStatement $statement )
+    public function __construct(\PDOStatement $statement)
     {
-        if ( null !== $statement )
-        {
+        if (null !== $statement) {
             $this->_statement = $statement;
         }
     }
@@ -82,14 +80,13 @@ class DataReader implements \Iterator, \Countable
      *
      * @return DataReader|bool
      */
-    public static function create( $sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function create($sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        $_reader = new DataReader( Sql::createStatement( $sql, $connection, $fetchMode ) );
+        $_reader = new DataReader(Sql::createStatement($sql, $connection, $fetchMode));
 
-        if ( false === ( $_result = $_reader->execute( $parameters ) ) )
-        {
+        if (false === ($_result = $_reader->execute($parameters))) {
             //	Don't be wasteful
-            unset( $_reader );
+            unset($_reader);
 
             return false;
         }
@@ -106,23 +103,18 @@ class DataReader implements \Iterator, \Countable
      * @throws \Exception
      * @return mixed
      */
-    public function __call( $name, $arguments )
+    public function __call($name, $arguments)
     {
-        if ( !empty( $this->_statement ) && method_exists( $this->_statement, $name ) )
-        {
-            try
-            {
-                $_result = call_user_func_array( array($this->_statement, $name), $arguments );
+        if (!empty($this->_statement) && method_exists($this->_statement, $name)) {
+            try {
+                $_result = call_user_func_array([$this->_statement, $name], $arguments);
 
-                if ( is_resource( $_result ) && 'stream' == get_resource_type( $_result ) )
-                {
-                    return stream_get_contents( $_result );
+                if (is_resource($_result) && 'stream' == get_resource_type($_result)) {
+                    return stream_get_contents($_result);
                 }
 
                 return $_result;
-            }
-            catch ( \Exception $_ex )
-            {
+            } catch (\Exception $_ex) {
                 throw $_ex;
             }
         }
@@ -135,21 +127,17 @@ class DataReader implements \Iterator, \Countable
      *
      * @return bool
      */
-    public function execute( $parameters = null )
+    public function execute($parameters = null)
     {
-        if ( empty( $parameters ) )
-        {
+        if (empty($parameters)) {
             $_result = $this->_statement->execute();
-        }
-        else
-        {
-            $_result = $this->_statement->execute( $parameters );
+        } else {
+            $_result = $this->_statement->execute($parameters);
         }
 
-        if ( false === $_result )
-        {
+        if (false === $_result) {
             $this->_errorInfo = $this->_statement->errorInfo();
-            error_log( 'SQL error: [' . $this->_errorInfo[0] . '-' . $this->_errorInfo[1] . '] ' . $this->_errorInfo[2] );
+            error_log('SQL error: [' . $this->_errorInfo[0] . '-' . $this->_errorInfo[1] . '] ' . $this->_errorInfo[2]);
         }
 
         return $this->_executeResult = $_result;
@@ -163,8 +151,7 @@ class DataReader implements \Iterator, \Countable
      */
     public function nextRowset()
     {
-        if ( false !== ( $result = $this->_statement->nextRowset() ) )
-        {
+        if (false !== ($result = $this->_statement->nextRowset())) {
             $this->_index = null;
         }
 
@@ -196,9 +183,8 @@ class DataReader implements \Iterator, \Countable
      */
     public function rewind()
     {
-        if ( null !== $this->_index )
-        {
-            throw new \LogicException( 'Forward-only cursor, "rewinding" not allowed.' );
+        if (null !== $this->_index) {
+            throw new \LogicException('Forward-only cursor, "rewinding" not allowed.');
         }
 
         $this->next();
@@ -232,8 +218,7 @@ class DataReader implements \Iterator, \Countable
     {
         $this->_row = $this->fetch();
 
-        if ( !empty( $this->_row ) )
-        {
+        if (!empty($this->_row)) {
             $this->_index++;
         }
     }
@@ -253,7 +238,7 @@ class DataReader implements \Iterator, \Countable
      *
      * @return $this
      */
-    public function setClosed( $closed )
+    public function setClosed($closed)
     {
         $this->_closed = $closed;
 
@@ -273,7 +258,7 @@ class DataReader implements \Iterator, \Countable
      *
      * @return $this
      */
-    public function setIndex( $index )
+    public function setIndex($index)
     {
         $this->_index = $index;
 
@@ -302,11 +287,10 @@ class DataReader implements \Iterator, \Countable
      *
      * @return $this
      */
-    public function setStatement( $statement, $fetchMode = \PDO::FETCH_ASSOC )
+    public function setStatement($statement, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        if ( null !== ( $this->_statement = $statement ) )
-        {
-            $this->_statement->setFetchMode( $fetchMode );
+        if (null !== ($this->_statement = $statement)) {
+            $this->_statement->setFetchMode($fetchMode);
         }
 
         return $this;
@@ -325,7 +309,7 @@ class DataReader implements \Iterator, \Countable
      *
      * @return $this
      */
-    public function setExecuteResult( $executeResult )
+    public function setExecuteResult($executeResult)
     {
         $this->_executeResult = $executeResult;
 
@@ -345,7 +329,7 @@ class DataReader implements \Iterator, \Countable
      *
      * @return $this
      */
-    public function setQueryString( $queryString )
+    public function setQueryString($queryString)
     {
         $this->_statement->queryString = $queryString;
 

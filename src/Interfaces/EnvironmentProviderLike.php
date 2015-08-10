@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility\Interfaces;
+<?php namespace DreamFactory\Library\Utility\Interfaces;
 
 /**
  * An object that can provide certain runtime environment details
@@ -46,7 +45,7 @@ interface EnvironmentProviderLike
      *
      * @return string
      */
-    public function getRequestId( $algorithm = 'sha256', $entropy = null );
+    public function getRequestId($algorithm = 'sha256', $entropy = null);
 
     /**
      * Determine the host name of this machine. First HTTP_HOST is used from PHP $_SERVER if available. Otherwise the
@@ -56,7 +55,7 @@ interface EnvironmentProviderLike
      *
      * @return string
      */
-    public function getHostname( $fqdn = true );
+    public function getHostname($fqdn = true);
 
     /**
      * Try a variety of cross platform methods to determine the current user
@@ -72,7 +71,7 @@ interface EnvironmentProviderLike
      *
      * @return bool|string
      */
-    public function getTempPath( $subPath = null );
+    public function getTempPath($subPath = null);
 
     /**
      * Locates the installed platform's base directory

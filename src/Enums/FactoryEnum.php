@@ -42,10 +42,8 @@ abstract class FactoryEnum
         if (true === $overwrite || !isset(static::$_constants[$_key])) {
             $_mirror = new \ReflectionClass($class ?: \get_called_class());
 
-            static::$_constants[$_key] = array_merge(
-                $seedConstants,
-                $_mirror->getConstants()
-            );
+            static::$_constants[$_key] = array_merge($seedConstants,
+                $_mirror->getConstants());
 
             unset($_mirror);
         }
@@ -214,9 +212,7 @@ abstract class FactoryEnum
             throw new \InvalidArgumentException('A constant with the value of "' . $constant . '" does not exist.');
         }
 
-        return !$flipped && $pretty
-            ? Inflector::display(Inflector::neutralize($_result))
-            : $_result;
+        return !$flipped && $pretty ? Inflector::display(Inflector::neutralize($_result)) : $_result;
     }
 
     /**

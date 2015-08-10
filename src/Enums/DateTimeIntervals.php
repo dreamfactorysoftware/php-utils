@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility\Enums;
+<?php namespace DreamFactory\Library\Utility\Enums;
 
 /**
  * Various date and time constants

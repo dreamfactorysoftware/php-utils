@@ -1,21 +1,25 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 class IfSet
 {
+    //******************************************************************************
+    //* Methods
+    //******************************************************************************
+
     /**
-     * @param array|\ArrayObject $target            Target to grab $key from
-     * @param string             $key               Index into target to retrieve
-     * @param mixed              $defaultValue      Value returned if $key is not in $target
-     * @param bool               $emptyStringIsNull If true, and the result is an empty string (''), NULL is returned
+     * @param array|\ArrayObject $target       Target to grab $key from
+     * @param string             $key          Index into target to retrieve
+     * @param mixed              $defaultValue Value returned if $key is not in $target
+     * @param bool               $emptyIsNull  If true, and the result is an empty string (''), NULL is returned
      *
      * @return mixed
      */
-    public static function get( array $target, $key, $defaultValue = null, $emptyStringIsNull = false )
+    public static function get(array $target, $key, $defaultValue = null, $emptyIsNull = false)
     {
-        $_result = is_array( $target ) ? ( array_key_exists( $key, $target ) ? $target[$key] : $defaultValue ) : $defaultValue;
+        $_result =
+            is_array($target) ? (array_key_exists($key, $target) ? $target[$key] : $defaultValue) : $defaultValue;
 
-        return $emptyStringIsNull && '' === $_result ? null : $_result;
+        return $emptyIsNull && '' === $_result ? null : $_result;
     }
 
     /**
@@ -25,25 +29,25 @@ class IfSet
      *
      * @return bool
      */
-    public static function getBool( array $target, $key, $defaultValue = false )
+    public static function getBool(array $target, $key, $defaultValue = false)
     {
-        return static::boolval( static::get( $target, $key, $defaultValue ) );
+        return static::boolval(static::get($target, $key, $defaultValue));
     }
 
     /**
      * @param array|\ArrayAccess|object $options
      * @param string                    $key
      * @param string                    $subKey
-     * @param mixed                     $defaultValue      Only applies to target value
-     * @param bool                      $emptyStringIsNull If true, empty() values will always return as NULL
+     * @param mixed                     $defaultValue Only applies to target value
+     * @param bool                      $emptyIsNull  If true, empty() values will always return as NULL
      *
      * @return mixed
      */
-    public static function getDeep( $options = array(), $key, $subKey, $defaultValue = null, $emptyStringIsNull = false )
+    public static function getDeep($options = [], $key, $subKey, $defaultValue = null, $emptyIsNull = false)
     {
-        $_deep = static::get( $options, $key, array(), $emptyStringIsNull );
+        $_deep = static::get($options, $key, [], $emptyIsNull);
 
-        return static::get( $_deep, $subKey, $defaultValue, $emptyStringIsNull );
+        return static::get($_deep, $subKey, $defaultValue, $emptyIsNull);
     }
 
     /**
@@ -54,11 +58,11 @@ class IfSet
      *
      * @return bool
      */
-    public static function getDeepBool( $options = array(), $key, $subKey, $defaultValue = null )
+    public static function getDeepBool($options = [], $key, $subKey, $defaultValue = null)
     {
-        $_deep = static::get( $options, $key, array(), $defaultValue );
+        $_deep = static::get($options, $key, [], $defaultValue);
 
-        return static::getBool( $_deep, $subKey, $defaultValue );
+        return static::getBool($_deep, $subKey, $defaultValue);
     }
 
     /**
@@ -67,9 +71,9 @@ class IfSet
      *
      * @return bool
      */
-    public static function has( array $target, $key )
+    public static function has(array $target, $key)
     {
-        return is_array( $target ) && array_key_exists( $key, $target );
+        return is_array($target) && array_key_exists($key, $target);
     }
 
     /**
@@ -79,9 +83,9 @@ class IfSet
      *
      * @return bool
      */
-    public static function hasDeep( array $target, $key, $subKey )
+    public static function hasDeep(array $target, $key, $subKey)
     {
-        return static::has( $target, $key ) && static::has( $target[$key], $subKey );
+        return static::has($target, $key) && static::has($target[$key], $subKey);
     }
 
     /**
@@ -89,9 +93,9 @@ class IfSet
      * @param string             $key    Index into target to retrieve
      * @param mixed              $value  The value to set
      */
-    public static function set( array $target, $key, $value = null )
+    public static function set(array $target, $key, $value = null)
     {
-        is_array( $target ) && $target[$key] = $value;
+        is_array($target) && $target[$key] = $value;
     }
 
     /**
@@ -99,18 +103,17 @@ class IfSet
      * @param string             $key    Index into target to retrieve
      * @param mixed              $value  The value to set
      */
-    public static function add( array $target, $key, $value = null )
+    public static function add(array $target, $key, $value = null)
     {
         //  If a value exists, convert to array and add value
-        if ( null !== ( $_current = static::get( $target, $key ) ) )
-        {
-            static::set( $target, $key, array($_current, $value) );
+        if (null !== ($_current = static::get($target, $key))) {
+            static::set($target, $key, [$_current, $value]);
 
             return;
         }
 
         //  Otherwise, just set key
-        static::set( $target, $key, $value );
+        static::set($target, $key, $value);
     }
 
     /**
@@ -119,11 +122,10 @@ class IfSet
      *
      * @return bool True if key existed and was removed
      */
-    public static function remove( array $target, $key )
+    public static function remove(array $target, $key)
     {
-        if ( static::has( $target, $key ) )
-        {
-            unset( $target[$key] );
+        if (static::has($target, $key)) {
+            unset($target[$key]);
 
             return true;
         }
@@ -137,17 +139,16 @@ class IfSet
      * @param string             $subKey The subkey to set
      * @param mixed              $value  The value to set
      */
-    public static function setDeep( array $target, $key, $subKey, $value = null )
+    public static function setDeep(array $target, $key, $subKey, $value = null)
     {
-        !array_key_exists( $target, $key ) && $target[$key] = array();
+        !array_key_exists($target, $key) && $target[$key] = [];
 
         //  Not an array, bail...
-        if ( !is_array( $target[$key] ) )
-        {
-            throw new \InvalidArgumentException( 'The object at $target[$key] must be an array.' );
+        if (!is_array($target[$key])) {
+            throw new \InvalidArgumentException('The object at $target[$key] must be an array.');
         }
 
-        static::set( $target[$key], $subKey, $value );
+        static::set($target[$key], $subKey, $value);
     }
 
     /**
@@ -155,26 +156,8 @@ class IfSet
      *
      * @return bool
      */
-    public static function boolval( $value )
+    public static function boolval($value)
     {
-        if ( \is_bool( $value ) )
-        {
-            return $value;
-        }
-
-        $_value = \strtolower( (string)$value );
-
-        //	FILTER_VALIDATE_BOOLEAN doesn't catch 'Y' or 'N', so convert to full words...
-        if ( 'y' == $_value )
-        {
-            $_value = 'yes';
-        }
-        elseif ( 'n' == $_value )
-        {
-            $_value = 'no';
-        }
-
-        return \filter_var( $_value, FILTER_VALIDATE_BOOLEAN );
+        return Scalar::boolval($value);
     }
-
 }

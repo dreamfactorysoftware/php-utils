@@ -1,9 +1,7 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 /**
- * Sql
- * A whole mess o' sql goodies
+ * Down-and-dirty PDO SQL class
  */
 class Sql
 {
@@ -50,16 +48,15 @@ class Sql
      *
      * @return \PDOStatement
      */
-    public static function createStatement( $sql, &$connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function createStatement($sql, &$connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        $_db = static::_checkConnection( $connection );
+        $_db = static::_checkConnection($connection);
 
         /** @var $_statement \PDOStatement */
-        $_statement = $_db->prepare( $sql );
+        $_statement = $_db->prepare($sql);
 
-        if ( false !== $fetchMode )
-        {
-            $_statement->setFetchMode( $fetchMode );
+        if (false !== $fetchMode) {
+            $_statement->setFetchMode($fetchMode);
         }
 
         return $_statement;
@@ -75,9 +72,9 @@ class Sql
      *
      * @return DataReader
      */
-    public static function query( $sql, $parameters = null, &$connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function query($sql, $parameters = null, &$connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        return DataReader::create( $sql, $parameters, $connection, $fetchMode );
+        return DataReader::create($sql, $parameters, $connection, $fetchMode);
     }
 
     /**
@@ -90,16 +87,15 @@ class Sql
      *
      * @return int The number of affected rows
      */
-    public static function execute( $sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function execute($sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        static::$_statement = static::createStatement( $sql, $connection, $fetchMode );
+        static::$_statement = static::createStatement($sql, $connection, $fetchMode);
 
-        if ( empty( $parameters ) )
-        {
+        if (empty($parameters)) {
             return static::$_statement->execute();
         }
 
-        return static::$_statement->execute( $parameters );
+        return static::$_statement->execute($parameters);
     }
 
     /**
@@ -112,10 +108,9 @@ class Sql
      *
      * @return null|array
      */
-    public static function find( $sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function find($sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        if ( false === ( $_reader = static::query( $sql, $parameters, $connection, $fetchMode ) ) )
-        {
+        if (false === ($_reader = static::query($sql, $parameters, $connection, $fetchMode))) {
             return null;
         }
 
@@ -132,10 +127,9 @@ class Sql
      *
      * @return array|bool
      */
-    public static function findAll( $sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function findAll($sql, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        if ( false === ( $_reader = static::query( $sql, $parameters, $connection, $fetchMode ) ) )
-        {
+        if (false === ($_reader = static::query($sql, $parameters, $connection, $fetchMode))) {
             return null;
         }
 
@@ -154,14 +148,13 @@ class Sql
      *
      * @return mixed
      */
-    public static function scalar( $sql, $columnNumber = 0, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC )
+    public static function scalar($sql, $columnNumber = 0, $parameters = null, $connection = null, $fetchMode = \PDO::FETCH_ASSOC)
     {
-        if ( false === ( $_reader = static::query( $sql, $parameters, $connection, $fetchMode ) ) )
-        {
+        if (false === ($_reader = static::query($sql, $parameters, $connection, $fetchMode))) {
             return null;
         }
 
-        return $_reader->fetchColumn( $columnNumber );
+        return $_reader->fetchColumn($columnNumber);
     }
 
     /**
@@ -173,21 +166,19 @@ class Sql
      * @throws \LogicException
      * @return \PDO
      */
-    protected static function _checkConnection( &$parameters = array(), &$connection = null )
+    protected static function _checkConnection(&$parameters = [], &$connection = null)
     {
         //	Allow laziness
-        if ( $parameters instanceof \PDO )
-        {
+        if ($parameters instanceof \PDO) {
             $connection = $parameters;
-            $parameters = array();
+            $parameters = [];
         }
 
-        static::setConnection( $_db = $connection ?: static::$_connection );
+        static::setConnection($_db = $connection ?: static::$_connection);
 
         //	Connect etc...
-        if ( empty( $_db ) || !( ( $_db instanceof \PDO ) && $_db->getAttribute( \PDO::ATTR_CONNECTION_STATUS ) ) )
-        {
-            throw new \LogicException( 'Cannot proceed until a database connection has been established. Try setting the "connection" property.' );
+        if (empty($_db) || !(($_db instanceof \PDO) && $_db->getAttribute(\PDO::ATTR_CONNECTION_STATUS))) {
+            throw new \LogicException('Cannot proceed until a database connection has been established. Try setting the "connection" property.');
         }
 
         return $_db;
@@ -196,10 +187,9 @@ class Sql
     /**
      * @param \PDO|null $connection
      */
-    public static function setConnection( $connection = null )
+    public static function setConnection($connection = null)
     {
-        if ( null !== static::$_connection )
-        {
+        if (null !== static::$_connection) {
             static::$_connection = null;
         }
 
@@ -222,21 +212,19 @@ class Sql
      *
      * @return void|\PDO
      */
-    public static function setConnectionString( $connectionString, $userName = null, $password = null, array $pdoOptions = array() )
+    public static function setConnectionString($connectionString, $userName = null, $password = null, array $pdoOptions = [])
     {
-        static::setConnection( null );
+        static::setConnection(null);
 
         //	If you set a connection string a new connection one is created for you
-        if ( !empty( $connectionString ) )
-        {
+        if (!empty($connectionString)) {
             static::$_connectionString = $connectionString;
 
-            static::$_connection = new \PDO(
-                static::$_connectionString,
-                $userName,
-                $password,
-                array_merge( array(\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,), $pdoOptions )
-            );
+            static::$_connection =
+                new \PDO(static::$_connectionString,
+                    $userName,
+                    $password,
+                    array_merge([\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,], $pdoOptions));
         }
 
         return static::$_connection;
@@ -253,7 +241,7 @@ class Sql
     /**
      * @param \PDOStatement $statement
      */
-    public static function setStatement( $statement )
+    public static function setStatement($statement)
     {
         static::$_statement = $statement;
     }

@@ -1,5 +1,6 @@
-<?php
-namespace DreamFactory\Library\Utility\Enums;
+<?php namespace DreamFactory\Library\Utility\Enums;
+
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * All the HTTP verbs in a single place!
@@ -13,27 +14,27 @@ class Verbs extends FactoryEnum
     /**
      * @type string
      */
-    const GET = 'GET';
+    const GET = Request::METHOD_GET;
     /**
      * @type string
      */
-    const PUT = 'PUT';
+    const PUT = Request::METHOD_PUT;
     /**
      * @type string
      */
-    const HEAD = 'HEAD';
+    const HEAD = Request::METHOD_HEAD;
     /**
      * @type string
      */
-    const POST = 'POST';
+    const POST = Request::METHOD_POST;
     /**
      * @type string
      */
-    const DELETE = 'DELETE';
+    const DELETE = Request::METHOD_DELETE;
     /**
      * @type string
      */
-    const OPTIONS = 'OPTIONS';
+    const OPTIONS = Request::METHOD_OPTIONS;
     /**
      * @type string
      */
@@ -41,7 +42,7 @@ class Verbs extends FactoryEnum
     /**
      * @type string
      */
-    const PATCH = 'PATCH';
+    const PATCH = Request::METHOD_PATCH;
     /**
      * @type string
      */
@@ -49,9 +50,9 @@ class Verbs extends FactoryEnum
     /**
      * @type string
      */
-    const TRACE = 'TRACE';
+    const TRACE = Request::METHOD_TRACE;
     /**
      * @type string
      */
-    const CONNECT = 'CONNECT';
+    const CONNECT = Request::METHOD_CONNECT;
 }
