@@ -200,9 +200,11 @@ class Disk
     public static function ensurePath($path, $mode = 0777, $recursive = false)
     {
         try {
-            if (!is_dir($path) && !@mkdir($path, $mode & ~umask(), $recursive)) {
+            if (!is_dir($path) && !@mkdir($path, $mode, $recursive)) {
                 throw new DiskException('mkdir() failed');
             }
+
+            @chmod($path, 0775 & ~umask());
         } catch (\Exception $_ex) {
             //  can't write or make directory?
             \Log::error('[Disk::ensurePath] error ensuring "' . $path . '": ' . $_ex->getMessage());
