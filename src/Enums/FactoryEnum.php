@@ -15,6 +15,10 @@ abstract class FactoryEnum
      * @var array The cache for quick lookups
      */
     protected static $_constants = null;
+    /**
+     * @type array Optional aliases for constants
+     */
+    protected static $tags = null;
 
     //*************************************************************************
     //* Methods
@@ -230,23 +234,23 @@ abstract class FactoryEnum
      * Returns a list of the constants in a comma-separated display manner
      *
      * @param string|null $quote An optional quote to enrobe the value (' or " only)
+     * @param bool        $tags  If true, $tags will be used instead of the constants themselves
      *
      * @return string
      */
-    public static function prettyList($quote = null)
+    public static function prettyList($quote = null, $tags = false)
     {
-        $_list = null;
         $quote != '\'' && $quote != '"' && $quote = null;
-        $_values = array_values(static::getDefinedConstants(true));
+        $_values = array_values($tags ? static::$tags : static::getDefinedConstants(true));
+
+        $_list = null;
 
         for ($_i = 0, $_max = count($_values); $_i < $_max; $_i++) {
             //  Skip constants starting with an underscore
-            if ($_values[$_i][0] == '_') {
-                continue;
+            if ('_' != $_values[$_i][0]) {
+                $_i != 0 && $_list .= ', ';
+                $_list .= $quote . strtolower($_values[$_i]) . $quote;
             }
-
-            $_i != 0 && $_list .= ', ';
-            $_list .= $quote . strtolower($_values[$_i]) . $quote;
         }
 
         return $_list;
