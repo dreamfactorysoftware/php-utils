@@ -3,6 +3,6 @@
 /**
  * Generic file exception
  */
-class FileException extends DiskException
+class FileException extends FileSystemException
 {
 }

@@ -1,7 +1,7 @@
 <?php namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\GlobFlags;
-use DreamFactory\Library\Utility\Exceptions\DiskException;
+use DreamFactory\Library\Utility\Exceptions\FileSystemException;
 
 /**
  * Down and dirty file utility class with a sprinkle of awesomeness
@@ -32,30 +32,28 @@ class Disk
 
         if (empty($_path)) {
             if ($create) {
-                throw new DiskException('Empty paths cannot be created.');
+                throw new FileSystemException('Path "' . $_path . '" cannot be created.');
             }
 
             return null;
         }
 
         if ($create && !static::ensurePath($_path, $mode, $recursive)) {
-            throw new DiskException('Unable to create directory "' . $_path . '".');
+            throw new FileSystemException('Unable to create directory "' . $_path . '".');
         }
 
         return $_path;
     }
 
     /**
-     * Returns suitable appendage based on segment. Trailing slashes are removed.
-     * Leading slashes are left in place if $leading === true. Empty segments return
-     * null, not DIRECTORY_SEPARATOR
+     * Returns suitable appendage based on segment.
      *
-     * @param array|string|null $segment   path segment(s)
-     * @param bool              $leading   If true, leading DIRECTORY_SEPARATOR ensured
-     * @param string            $separator The string to place between segments. Defaults to DIRECTORY_SEPARATOR
+     * @param array|string|null $segment   path segment
+     * @param bool              $leading   If true, leading $separator ensured, otherwise stripped
+     * @param string            $separator The directory separator to use
      *
      * @return null|string Returns the concatenated string with or without $leading slash. If an empty
-     * DIRECTORY_SEPARATOR is the result, null will be returned.
+     * $separator is the result, null will be returned.
      */
     public static function segment($segment = null, $leading = false, $separator = DIRECTORY_SEPARATOR)
     {
@@ -63,23 +61,17 @@ class Disk
 
         if (!empty($segment)) {
             foreach (!is_array($segment) ? [$segment] : $segment as $_portion) {
-                //  Remove all slashes from front and back
+                //  Remove all spaces & slashes from front and back
                 $_portion = trim($_portion, $separator . ' ');
 
                 if (!empty($_portion) && $separator != $_portion) {
                     $_result .= $separator . $_portion;
                 }
             }
-
-            //  Clean up and ensure leading slash if wanted
-            $_result = trim($_result, $separator . ' ');
-            $_result = (empty($_result) || $separator == $_result)
-                ? null
-                : ($leading ? $separator : null) . ltrim($_result,
-                    $separator);
         }
 
-        return $_result;
+        //  Ensure leading slash if wanted
+        return ($leading ? $separator : null) . ltrim($_result, $separator);
     }
 
     /**
@@ -125,7 +117,9 @@ class Disk
 
                 // Match file mask
                 if (fnmatch($_mask, $_file)) {
-                    if (((!($flags & GLOB_ONLYDIR)) || is_dir($_fullPath)) && ((!($flags & GlobFlags::GLOB_NODIR)) || (!is_dir($_fullPath))) && ((!($flags & GlobFlags::GLOB_NODOTS)) || (!in_array($_file,
+                    if (((!($flags & GLOB_ONLYDIR)) || is_dir($_fullPath)) &&
+                        ((!($flags & GlobFlags::GLOB_NODIR)) || (!is_dir($_fullPath))) &&
+                        ((!($flags & GlobFlags::GLOB_NODOTS)) || (!in_array($_file,
                                 ['.', '..'])))
                     ) {
                         $_glob[] =
@@ -201,7 +195,7 @@ class Disk
     {
         try {
             if (!is_dir($path) && !@mkdir($path, $mode, $recursive)) {
-                throw new DiskException('mkdir() failed');
+                throw new FileSystemException('mkdir() failed');
             }
 
             @chmod($path, 0775 & ~umask());
