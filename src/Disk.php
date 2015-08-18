@@ -57,7 +57,7 @@ class Disk
      */
     public static function segment($segment = null, $leading = false, $separator = DIRECTORY_SEPARATOR)
     {
-        $_result = null;
+        $_segments = [];
 
         if (!empty($segment)) {
             foreach (!is_array($segment) ? [$segment] : $segment as $_portion) {
@@ -65,13 +65,13 @@ class Disk
                 $_portion = trim($_portion, $separator . ' ');
 
                 if (!empty($_portion) && $separator != $_portion) {
-                    $_result .= $separator . $_portion;
+                    $_segments[] = $_portion;
                 }
             }
         }
 
         //  Ensure leading slash if wanted
-        return ($leading ? $separator : null) . ltrim($_result, $separator);
+        return ($leading ? $separator : null) . ltrim(implode($separator, $_segments), $separator);
     }
 
     /**
