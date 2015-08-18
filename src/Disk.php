@@ -19,14 +19,14 @@ class Disk
      *
      *      The result is "/path/to/my/stuff"
      *
-     * @param array $parts     The segments of the path to build
-     * @param bool  $create    If true, and result path doesn't exist, it will be created
-     * @param int   $mode      mkdir: octal mode for creating new directories
-     * @param bool  $recursive mkdir: recursively create directory
+     * @param array|string $parts     The segments of the path to build
+     * @param bool         $create    If true, and result path doesn't exist, it will be created
+     * @param int          $mode      mkdir: octal mode for creating new directories
+     * @param bool         $recursive mkdir: recursively create directory
      *
      * @return string Returns the path
      */
-    public static function path(array $parts = [], $create = false, $mode = 0777, $recursive = true)
+    public static function path($parts, $create = false, $mode = 0777, $recursive = true)
     {
         $_path = static::segment($parts, true);
 
