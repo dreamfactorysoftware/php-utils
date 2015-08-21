@@ -60,6 +60,8 @@ class Disk
         $_segments = [];
 
         if (!empty($segment)) {
+            empty($separator) && $separator = DIRECTORY_SEPARATOR;
+
             foreach (!is_array($segment) ? [$segment] : $segment as $_portion) {
                 //  Remove all spaces & slashes from front and back
                 $_portion = trim($_portion, $separator . ' ');
@@ -71,7 +73,10 @@ class Disk
         }
 
         //  Ensure leading slash if wanted
-        return ($leading ? $separator : null) . ltrim(implode($separator, $_segments), $separator);
+        $_result = ($leading ? $separator : null) . trim(implode($separator, $_segments), $separator);
+
+        //  Return the string or null if empty
+        return (empty($_result) || $separator == $_result) ? null : $_result;
     }
 
     /**
@@ -198,7 +203,7 @@ class Disk
                 throw new FileSystemException('mkdir() failed');
             }
 
-            @chmod($path, 0775 & ~umask());
+            @chmod($path, 02777 & ~umask());
         } catch (\Exception $_ex) {
             //  can't write or make directory?
             \Log::error('[Disk::ensurePath] error ensuring "' . $path . '": ' . $_ex->getMessage());
