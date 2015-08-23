@@ -103,4 +103,17 @@ class Uri
         return empty($_diff);
     }
 
+    /**
+     * Concatenate $parts into $separator delimited, trimmed, clean string.
+     *
+     * @param string|array $parts     The part or parts to join
+     * @param bool         $leading   If true (default), a leading $separator will be added
+     * @param string       $separator The delimiter to use
+     *
+     * @return null|string
+     */
+    public static function segment($parts = [], $leading = true, $separator = '/')
+    {
+        return Disk::segment($parts, $leading, $separator);
+    }
 }

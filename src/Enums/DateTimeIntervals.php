@@ -43,6 +43,26 @@ class DateTimeIntervals extends FactoryEnum
      */
     const SECONDS_PER_DAY = 86400;
     /**
+     * @var int Stupid, I know, but at least it's a constant
+     */
+    const MINUTES_PER_MINUTE = 1;
+    /**
+     * @var int
+     */
+    const MINUTES_PER_HOUR = self::SECONDS_PER_MINUTE;
+    /**
+     * @var int
+     */
+    const MINUTES_PER_DAY = 1440;
+    /**
+     * @var int
+     */
+    const MINUTES_PER_WEEK = 10080;
+    /**
+     * @var int
+     */
+    const MINUTES_PER_MONTH = 43200;
+    /**
      * @var int circa 01/01/1980 (Ahh... my TRS-80... good times)
      */
     const EPOCH_START = 315550800;
@@ -50,4 +70,17 @@ class DateTimeIntervals extends FactoryEnum
      * @var int circa 01/01/2038 (despite the Mayan calendar or John Titor...)
      */
     const EPOCH_END = 2145934800;
+
+    //******************************************************************************
+    //* Members
+    //******************************************************************************
+
+    /** @inheritdoc */
+    protected static $tags = [
+        self::MINUTES_PER_MINUTE => 'Minute',
+        self::MINUTES_PER_HOUR   => 'Hour',
+        self::MINUTES_PER_DAY    => 'Day',
+        self::MINUTES_PER_WEEK   => 'Week',
+        self::MINUTES_PER_MONTH  => 'Month',
+    ];
 }
