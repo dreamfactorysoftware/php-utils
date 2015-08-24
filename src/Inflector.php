@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 /**
  * Provides inflection
@@ -19,31 +18,27 @@ class Inflector
      *
      * @return string
      */
-    public static function neutralize( $item, $strip = null )
+    public static function neutralize($item, $strip = null)
     {
-        if ( is_numeric( $item ) )
-        {
+        if (is_numeric($item)) {
             return $item;
         }
 
-        if ( null !== $strip )
-        {
-            $item = str_ireplace( $strip, null, $item );
+        if (null !== $strip) {
+            $item = str_ireplace($strip, null, $item);
         }
 
         //	Split by forward slash, backslash, period, or space...
-        $_parts = preg_split( "/[. \/\\\\]+/", $item );
+        $_parts = preg_split("/[. \/\\\\]+/", $item);
 
         //  Make it perdee...
-        if ( !empty( $_parts ) )
-        {
-            foreach ( $_parts as $_index => $_part )
-            {
-                $_parts[$_index] = static::decamelize( $_part );
+        if (!empty($_parts)) {
+            foreach ($_parts as $_index => $_part) {
+                $_parts[$_index] = static::decamelize($_part);
             }
         }
 
-        return implode( '.', $_parts );
+        return implode('.', $_parts);
     }
 
     /**
@@ -56,23 +51,20 @@ class Inflector
      *
      * @return string
      */
-    public static function neutralizeObject( $object, $strip = null )
+    public static function neutralizeObject($object, $strip = null)
     {
-        $_variables = is_array( $object ) ? $object : get_object_vars( $object );
+        $_variables = is_array($object) ? $object : get_object_vars($object);
 
-        if ( !empty( $_variables ) )
-        {
-            foreach ( $_variables as $_key => $_value )
-            {
+        if (!empty($_variables)) {
+            foreach ($_variables as $_key => $_value) {
                 $_originalKey = $_key;
 
-                if ( $strip )
-                {
-                    $_key = str_replace( $strip, null, $_key );
+                if ($strip) {
+                    $_key = str_replace($strip, null, $_key);
                 }
 
-                $_variables[static::neutralize( ltrim( $_key, '_' ) )] = $_value;
-                unset( $_variables[$_originalKey] );
+                $_variables[static::neutralize(ltrim($_key, '_'))] = $_value;
+                unset($_variables[$_originalKey]);
             }
         }
 
@@ -86,18 +78,14 @@ class Inflector
      *
      * @return string
      */
-    public static function display( $item )
+    public static function display($item)
     {
-        return static::camelize(
-            str_replace(
-                array('_', '.', '\\', '/'),
-                ' ',
-                $item
-            ),
+        return static::camelize(str_replace(['_', '.', '\\', '/'],
+            ' ',
+            $item),
             '_',
             true,
-            false
-        );
+            false);
     }
 
     /**
@@ -109,23 +97,18 @@ class Inflector
      *
      * @return string
      */
-    public static function deneutralize( $item, $isKey = false, $delimiter = '\\' )
+    public static function deneutralize($item, $isKey = false, $delimiter = '\\')
     {
-        if ( is_numeric( $item ) )
-        {
+        if (is_numeric($item)) {
             return $item;
         }
 
-        return static::camelize(
-            str_replace(
-                array('_', '.', $delimiter),
-                ' ',
-                $item
-            ),
+        return static::camelize(str_replace(['_', '.', $delimiter],
+            ' ',
+            $item),
             '_',
             false,
-            $isKey
-        );
+            $isKey);
     }
 
     /**
@@ -134,9 +117,9 @@ class Inflector
      *
      * @return string
      */
-    public static function baseName( $tag, $delimiter = '\\' )
+    public static function baseName($tag, $delimiter = '\\')
     {
-        return @end( @explode( $delimiter, $tag ) );
+        return @end(@explode($delimiter, $tag));
     }
 
     /**
@@ -149,18 +132,17 @@ class Inflector
      *
      * @return string
      */
-    public static function camelize( $string, $separator = null, $preserveWhiteSpace = false, $isKey = false )
+    public static function camelize($string, $separator = null, $preserveWhiteSpace = false, $isKey = false)
     {
-        empty( $separator ) && $separator = array('_', '-');
+        empty($separator) && $separator = ['_', '-'];
 
-        $_newString = ucwords( str_replace( $separator, ' ', $string ) );
+        $_newString = ucwords(str_replace($separator, ' ', $string));
 
-        if ( false !== $isKey )
-        {
-            $_newString = lcfirst( $_newString );
+        if (false !== $isKey) {
+            $_newString = lcfirst($_newString);
         }
 
-        return ( false === $preserveWhiteSpace ? str_replace( ' ', null, $_newString ) : $_newString );
+        return (false === $preserveWhiteSpace ? str_replace(' ', null, $_newString) : $_newString);
     }
 
     /**
@@ -170,9 +152,9 @@ class Inflector
      *
      * @return string
      */
-    public static function decamelize( $string )
+    public static function decamelize($string)
     {
-        return strtolower( preg_replace( "/([a-z])([A-Z])/", "\\1_\\2", $string ) );
+        return strtolower(preg_replace("/([a-z])([A-Z])/", "\\1_\\2", $string));
     }
 
     /**
@@ -183,20 +165,17 @@ class Inflector
      *
      * @return bool|string
      */
-    public static function isPlural( $word, $returnSingular = false )
+    public static function isPlural($word, $returnSingular = false)
     {
-        if ( empty( $word ) || !is_string( $word ) || strlen( $word ) < 3 )
-        {
+        if (empty($word) || !is_string($word) || strlen($word) < 3) {
             return false;
         }
 
-        $_temp = $word[strlen( $word ) - 1];
+        $_temp = $word[strlen($word) - 1];
 
-        if ( 's' == $_temp && $word == static::pluralize( substr( $word, 0, -1 ) ) )
-        {
-            if ( false !== $returnSingular )
-            {
-                return substr( $word, 0, -1 );
+        if ('s' == $_temp && $word == static::pluralize(substr($word, 0, -1))) {
+            if (false !== $returnSingular) {
+                return substr($word, 0, -1);
             }
 
             return true;
@@ -212,10 +191,10 @@ class Inflector
      *
      * @return string the pluralized word
      */
-    public static function pluralize( $name )
+    public static function pluralize($name)
     {
         /** @noinspection SpellCheckingInspection */
-        static $_blacklist = array(
+        static $_blacklist = [
             'Amoyese',
             'bison',
             'Borghese',
@@ -298,9 +277,9 @@ class Inflector
             'whiting',
             'wildebeest',
             'Yengeese',
-        );
+        ];
         /** @noinspection SpellCheckingInspection */
-        static $_rules = array(
+        static $_rules = [
             '/(s)tatus$/i'                                                                 => '\1\2tatuses',
             '/(quiz)$/i'                                                                   => '\1zes',
             '/^(ox)$/i'                                                                    => '\1en',
@@ -329,18 +308,15 @@ class Inflector
             '/(ax|cris|test)is$/i'                                                         => '\1es',
             '/s$/'                                                                         => 's',
             '/$/'                                                                          => 's',
-        );
+        ];
 
-        if ( empty( $name ) || in_array( strtolower( $name ), $_blacklist ) )
-        {
+        if (empty($name) || in_array(strtolower($name), $_blacklist)) {
             return $name;
         }
 
-        foreach ( $_rules as $_rule => $_replacement )
-        {
-            if ( preg_match( $_rule, $name ) )
-            {
-                return preg_replace( $_rule, $_replacement, $name );
+        foreach ($_rules as $_rule => $_replacement) {
+            if (preg_match($_rule, $name)) {
+                return preg_replace($_rule, $_replacement, $name);
             }
         }
 

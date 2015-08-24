@@ -1,5 +1,4 @@
-<?
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 
@@ -52,22 +51,30 @@ class CorsEntry
      * @param string $scheme       The scheme of the entry
      * @param array  $allowedVerbs The verbs allowed for the entry. Defaults to all verbs being allowed
      */
-    public function __construct( $host = null, $port = null, $scheme = null, $allowedVerbs = null )
+    public function __construct($host = null, $port = null, $scheme = null, $allowedVerbs = null)
     {
-        $this->_host = strtolower( $host ?: IfSet::get( $_SERVER, 'HTTP_HOST' ) );
+        $this->_host = strtolower($host ?: IfSet::get($_SERVER, 'HTTP_HOST'));
 
-        if ( static::WIDE_OPEN != $this->_host )
-        {
-            $this->_port = $port ?: IfSet::get( $_SERVER, 'SERVER_PORT' );
-            $this->_scheme = $scheme ?: 'http' . ( IfSet::getBool( $_SERVER, 'HTTPS' ) ? 's' : null );
+        if (static::WIDE_OPEN != $this->_host) {
+            $this->_port = $port ?: IfSet::get($_SERVER, 'SERVER_PORT');
+            $this->_scheme = $scheme ?: 'http' . (IfSet::getBool($_SERVER, 'HTTPS') ? 's' : null);
 
             //  Ignore standard ports
             'https' == $this->_scheme && 443 == $this->_port && $this->_port = null;
             'http' == $this->_scheme && 80 == $this->_port && $this->_port = null;
         }
 
-        $this->_allowedVerbs =
-            $allowedVerbs ?: array(Verbs::GET, Verbs::POST, Verbs::PUT, Verbs::DELETE, Verbs::PATCH, Verbs::MERGE, Verbs::COPY, Verbs::OPTIONS);
+        $this->_allowedVerbs = $allowedVerbs
+            ?: [
+                Verbs::GET,
+                Verbs::POST,
+                Verbs::PUT,
+                Verbs::DELETE,
+                Verbs::PATCH,
+                Verbs::MERGE,
+                Verbs::COPY,
+                Verbs::OPTIONS,
+            ];
     }
 
     /**
@@ -75,7 +82,7 @@ class CorsEntry
      */
     public function getUri()
     {
-        return $this->_scheme . '://' . $this->_host . ( $this->_port ? ':' . $this->_port : null );
+        return $this->_scheme . '://' . $this->_host . ($this->_port ? ':' . $this->_port : null);
     }
 
     /**
@@ -85,16 +92,15 @@ class CorsEntry
      *
      * @return bool
      */
-    public function isVerbAllowed( $verb )
+    public function isVerbAllowed($verb)
     {
-        $verb = strtoupper( $verb );
+        $verb = strtoupper($verb);
 
-        if ( !Verbs::contains( $verb ) )
-        {
-            throw new \InvalidArgumentException( 'The verb "' . $verb . '" is not valid.' );
+        if (!Verbs::contains($verb)) {
+            throw new \InvalidArgumentException('The verb "' . $verb . '" is not valid.');
         }
 
-        return in_array( $verb, $this->_allowedVerbs );
+        return in_array($verb, $this->_allowedVerbs);
     }
 
     /**
@@ -110,7 +116,7 @@ class CorsEntry
      *
      * @return CorsEntry
      */
-    public function setHost( $host )
+    public function setHost($host)
     {
         $this->_host = $host;
 
@@ -130,7 +136,7 @@ class CorsEntry
      *
      * @return CorsEntry
      */
-    public function setPort( $port )
+    public function setPort($port)
     {
         $this->_port = $port;
 
@@ -150,7 +156,7 @@ class CorsEntry
      *
      * @return CorsEntry
      */
-    public function setScheme( $scheme )
+    public function setScheme($scheme)
     {
         $this->_scheme = $scheme;
 
@@ -170,7 +176,7 @@ class CorsEntry
      *
      * @return CorsEntry
      */
-    public function setAllowedVerbs( $allowedVerbs )
+    public function setAllowedVerbs($allowedVerbs)
     {
         $this->_allowedVerbs = $allowedVerbs;
 
@@ -190,7 +196,7 @@ class CorsEntry
      *
      * @return CorsEntry
      */
-    public function setEnabled( $enabled )
+    public function setEnabled($enabled)
     {
         $this->_enabled = $enabled;
 

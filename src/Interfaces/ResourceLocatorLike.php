@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility\Interfaces;
+<?php namespace DreamFactory\Library\Utility\Interfaces;
 
 /**
  * Something that can locate resources
@@ -19,5 +18,5 @@ interface ResourceLocatorLike
      *
      * @return mixed|bool The resource or FALSE on failure
      */
-    public function locate( $type, $id, $options = array() );
+    public function locate($type, $id, $options = []);
 }

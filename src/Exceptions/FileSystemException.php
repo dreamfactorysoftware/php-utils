@@ -1,9 +1,8 @@
-<?php
-namespace DreamFactory\Library\Utility\Exceptions;
+<?php namespace DreamFactory\Library\Utility\Exceptions;
 
 /**
  * Generic file system exception
  */
-class FileSystemException extends FileException
+class FileSystemException extends DiskException
 {
 }

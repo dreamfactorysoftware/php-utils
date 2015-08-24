@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Library\Utility;
+<?php namespace DreamFactory\Library\Utility;
 
 use DreamFactory\Library\Utility\Exceptions\FileException;
 
@@ -42,10 +41,10 @@ class Roller
      * @param string $fileName
      * @param int    $keepCount
      */
-    public function __construct( $fileName, $keepCount = self::DEFAULT_KEEP_COUNT )
+    public function __construct($fileName, $keepCount = self::DEFAULT_KEEP_COUNT)
     {
-        $this->_filename = basename( $fileName );
-        $this->_path = dirname( $fileName );
+        $this->_filename = basename($fileName);
+        $this->_path = dirname($fileName);
     }
 
     /**
@@ -56,26 +55,21 @@ class Roller
         $_baseFile = $this->_path . DIRECTORY_SEPARATOR . $this->_filename;
 
         //  Roll the files 1-n
-        for ( $_i = $this->_keepCount - 1; $_i > 0; $_i-- )
-        {
-            $_oldName = $_baseFile . '.' . ( $_i - 1 );
+        for ($_i = $this->_keepCount - 1; $_i > 0; $_i--) {
+            $_oldName = $_baseFile . '.' . ($_i - 1);
             $_newName = $_baseFile . '.' . $_i;
 
             //  If this is the last one, remove it...
-            if ( file_exists( $_oldName ) )
-            {
-                if ( false === @rename( $_oldName, $_newName ) )
-                {
-                    throw new FileException( 'Unable to rename file "' . $_oldName . '" to "' . $_newName . '"' );
+            if (file_exists($_oldName)) {
+                if (false === @rename($_oldName, $_newName)) {
+                    throw new FileException('Unable to rename file "' . $_oldName . '" to "' . $_newName . '"');
                 }
             }
         }
 
         //  Roll the base file...
-        if ( false === @rename( $_baseFile, $_baseFile . '.1' ) )
-        {
-            throw new FileException( 'Unable to rename file "' . $_baseFile . '" to "' . $_baseFile . '.1"' );
+        if (false === @rename($_baseFile, $_baseFile . '.1')) {
+            throw new FileException('Unable to rename file "' . $_baseFile . '" to "' . $_baseFile . '.1"');
         }
-
     }
 }
