@@ -67,7 +67,7 @@ class Curl extends Verbs
     /**
      * @var bool If true, PUTs are transferred via CURL's INFILE method. Otherwise, data is PUT via POSTFIELDS.
      */
-    public static $putAsFile = true;
+    public static $putAsFile = false;
 
     //*************************************************************************
     //* Methods
