@@ -2,6 +2,7 @@
 
 use DreamFactory\Library\Utility\Enums\GlobFlags;
 use DreamFactory\Library\Utility\Exceptions\FileSystemException;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Down and dirty file utility class with a sprinkle of awesomeness
@@ -128,8 +129,9 @@ class Disk
                                 ['.', '..'])))
                     ) {
                         $_glob[] =
-                            ($flags & GlobFlags::GLOB_PATH ? $_path . '/' : null) . $_file . ($flags & GLOB_MARK ? '/'
-                                : '');
+                            ($flags & GlobFlags::GLOB_PATH ? $_path . '/' : null) .
+                            $_file .
+                            ($flags & GLOB_MARK ? '/' : '');
                     }
                 }
             }
@@ -206,7 +208,8 @@ class Disk
             @chmod($path, 02777 & ~umask());
         } catch (\Exception $_ex) {
             //  can't write or make directory?
-            \Log::error('[Disk::ensurePath] error ensuring "' . $path . '": ' . $_ex->getMessage());
+            /** @noinspection PhpUndefinedMethodInspection */
+            //Log::error('[Disk::ensurePath] error ensuring "' . $path . '": ' . $_ex->getMessage());
 
             return false;
         }
