@@ -41,8 +41,6 @@ class Flasher
      * @param string      $value
      * @param bool        $success
      * @param string|null $key If specified, use as flash key
-     *
-     * @internal param string $message
      */
     public static function flashIf($value, $success = true, $key = null)
     {
