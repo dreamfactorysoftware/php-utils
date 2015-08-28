@@ -29,10 +29,12 @@ class Flasher
      * @param bool|true   $success
      * @param string|null $key If specified, use as flash key
      */
-    public static function flash($value, $success = true, $key = null)
+    public static function flash( $value, $success = true, $key = null )
     {
-        /** @noinspection PhpUndefinedMethodInspection */
-        Session::flash($key ?: static::buildFlashKey($success), $value);
+        static::session()->flash(
+            $key ?: static::buildFlashKey( $success ),
+            $value
+        );
     }
 
     /**
@@ -42,14 +44,10 @@ class Flasher
      * @param bool        $success
      * @param string|null $key If specified, use as flash key
      */
-    public static function flashIf($value, $success = true, $key = null)
+    public static function flashIf( $value, $success = true, $key = null )
     {
-        $_key = $key ?: static::buildFlashKey($success);
-
-        /** @noinspection PhpUndefinedMethodInspection */
-        if (!Session::has($_key)) {
-            static::flash($value, $success, $_key);
-        }
+        $_key = $key ?: static::buildFlashKey( $success );
+        !static::session()->has( $_key ) && static::flash( $value, $success, $_key );
     }
 
     /**
@@ -57,16 +55,27 @@ class Flasher
      *
      * @param bool|null $success Which key to clear, null for both (default)
      */
-    public static function forget($success = null)
+    public static function forget( $success = null )
     {
-        /** @noinspection PhpUndefinedMethodInspection */
         $_keys =
-            null === $success ? [static::buildFlashKey(true), static::buildFlashKey(false)]
-                : [static::buildFlashKey($success)];
+            null === $success ? [static::buildFlashKey( true ), static::buildFlashKey( false )]
+                : [static::buildFlashKey( $success )];
 
-        foreach ($_keys as $_key) /** @noinspection PhpUndefinedMethodInspection */ {
-            Session::forget($_key);
+        foreach ( $_keys as $_key )
+        {
+            static::session()->forget( $_key );
         }
+    }
+
+    /**
+     * @param string|array|null $key
+     * @param mixed|null        $default
+     *
+     * @return Session|mixed
+     */
+    protected static function session( $key = null, $default = null )
+    {
+        return session( $key, $default );
     }
 
     /**
@@ -76,9 +85,9 @@ class Flasher
      *
      * @return string
      */
-    protected static function buildFlashKey($success = true)
+    protected static function buildFlashKey( $success = true )
     {
-        return (static::$prefix ? static::$prefix . static::$separator : null) . ($success ? 'success' : 'failure');
+        return ( static::$prefix ? static::$prefix . static::$separator : null ) . ( $success ? 'success' : 'failure' );
     }
 
     /**
@@ -92,7 +101,7 @@ class Flasher
     /**
      * @param string $prefix
      */
-    public static function setPrefix($prefix)
+    public static function setPrefix( $prefix )
     {
         static::$prefix = $prefix;
     }
@@ -108,7 +117,7 @@ class Flasher
     /**
      * @param string $separator
      */
-    public static function setSeparator($separator)
+    public static function setSeparator( $separator )
     {
         static::$separator = $separator;
     }
