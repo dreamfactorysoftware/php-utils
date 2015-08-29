@@ -171,4 +171,35 @@ class Scalar
 
         return false;
     }
+
+    /**
+     * Concatenates $parts into a single string delimited by $delimiter
+     *
+     * @param array|string $parts     The string or array of strings to concatenate
+     * @param bool|false   $leading   If true, a leading $delimiter will be pre-pended
+     * @param string       $delimiter The concatenation delimiter. Defaults to a dot (".")
+     *
+     * @return null|string
+     */
+    public static function concat($parts = [], $leading = false, $delimiter = '.')
+    {
+        $_parts = [];
+
+        if (!empty($parts)) {
+            foreach (is_array($parts) ? $parts : [$parts] as $_portion) {
+                //  Remove $delimiter from front and back
+                $_portion = trim($_portion, $delimiter);
+
+                if (!empty($_portion) && $delimiter != $_portion) {
+                    $_parts[] = $_portion;
+                }
+            }
+        }
+
+        //  Ensure leading $delimiter if wanted
+        $_result = ($leading ? $delimiter : null) . trim(implode($delimiter, $_parts), $delimiter);
+
+        //  Return the string or null if empty
+        return (empty($_result) || $_result == $delimiter) ? null : $_result;
+    }
 }

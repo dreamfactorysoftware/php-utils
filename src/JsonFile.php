@@ -28,15 +28,11 @@ class JsonFile extends Json
     /**
      * @type bool If true, a copy of files to be overwritten will be made
      */
-    protected static $_makeBackups = false;
+    protected static $makeBackups = false;
     /**
      * @type string The absolute path of our JSON file.
      */
-    protected $_filePath;
-    /**
-     * @type array A map of properties to their JSON equivalents and vice-versa
-     */
-    protected $_propertyMap;
+    protected $filePath;
 
     //******************************************************************************
     //* Methods
@@ -49,8 +45,8 @@ class JsonFile extends Json
      */
     public function __construct($filePath = null, $makeBackups = true, $contents = [])
     {
-        static::$_makeBackups = $makeBackups;
-        static::ensureFileExists($filePath, $contents) && $this->_filePath = $filePath;
+        static::$makeBackups = $makeBackups;
+        static::ensureFileExists($filePath, $contents) && $this->filePath = $filePath;
     }
 
     /**
@@ -65,15 +61,15 @@ class JsonFile extends Json
      */
     public function read($decoded = true, $asArray = true, $depth = 512, $options = 0)
     {
-        if (!file_exists($this->_filePath)) {
-            throw new FileSystemException('The file "' . $this->_filePath . '" does not exist.');
+        if (!file_exists($this->filePath)) {
+            throw new FileSystemException('The file "' . $this->filePath . '" does not exist.');
         }
 
         if (!$decoded) {
-            return file_get_contents($this->_filePath);
+            return file_get_contents($this->filePath);
         }
 
-        return static::decodeFile($this->_filePath, $asArray, $depth, $options);
+        return static::decodeFile($this->filePath, $asArray, $depth, $options);
     }
 
     /**
@@ -89,7 +85,7 @@ class JsonFile extends Json
      */
     public function write($data = [], $options = null, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY)
     {
-        return static::encodeFile($this->_filePath, $data ?: [], $options, $retries, $retryDelay);
+        return static::encodeFile($this->filePath, $data ?: [], $options, $retries, $retryDelay);
     }
 
     /**
@@ -103,7 +99,7 @@ class JsonFile extends Json
      */
     public function ensureFileExists($filePath, $defaultContents = null, $checkOnly = false)
     {
-        if (!FileSystem::ensurePath($_path = dirname($filePath))) {
+        if (!Disk::ensurePath($_path = dirname($filePath))) {
             if ($checkOnly) {
                 return false;
             }
@@ -116,43 +112,6 @@ class JsonFile extends Json
 
         //  Exists
         return is_file($filePath);
-    }
-
-    /**
-     * @param string $file Absolute path to our file
-     *
-     * @return bool|int
-     */
-    protected static function _backupExistingFile($file)
-    {
-        static $_template = '{file}.{date}.save';
-
-        if (!static::$_makeBackups || !file_exists($file)) {
-            return true;
-        }
-
-        if (!FileSystem::ensurePath($_path = dirname($file))) {
-            throw new \RuntimeException('Unable to create file "' . $file . '"');
-        }
-
-        return file_put_contents(str_replace(['{file}', '{date}'], [basename($file), date('YmdHiS')], $_template),
-            file_get_contents($file));
-    }
-
-    /**
-     * @return boolean
-     */
-    public static function getMakeBackups()
-    {
-        return static::$_makeBackups;
-    }
-
-    /**
-     * @return string
-     */
-    public function getFilePath()
-    {
-        return $this->_filePath;
     }
 
     /**
@@ -169,11 +128,11 @@ class JsonFile extends Json
      */
     public static function encodeFile($file, $data, $options = null, $depth = 512, $retries = self::STORAGE_OPERATION_RETRY_COUNT, $retryDelay = self::STORAGE_OPERATION_RETRY_DELAY)
     {
-        if (!FileSystem::ensurePath($_path = dirname($file)) || !is_writeable($_path)) {
+        if (!Disk::ensurePath($_path = dirname($file)) || !is_writeable($_path)) {
             throw new \InvalidArgumentException('The path "' . $_path . '" is not writable.');
         }
 
-        file_exists($file) && static::_backupExistingFile($file);
+        file_exists($file) && static::backupExistingFile($file);
 
         if (!is_string($data)) {
             if (false === ($_json = static::encode($data, $options, $depth)) || JSON_ERROR_NONE != json_last_error()) {
@@ -186,7 +145,11 @@ class JsonFile extends Json
         while ($retries--) {
             try {
                 if (false === file_put_contents($file, $data)) {
-                    throw new FileException('Unable to write data to file "' . $file . '" after ' . $retries . ' attempt(s).');
+                    throw new FileException('Unable to write data to file "' .
+                        $file .
+                        '" after ' .
+                        $retries .
+                        ' attempt(s).');
                 }
 
                 break;
@@ -215,11 +178,47 @@ class JsonFile extends Json
      */
     public static function decodeFile($file, $asArray = true, $depth = 512, $options = 0)
     {
-        if (FileSystem::ensurePath($_path = dirname($file)) && file_exists($file) && is_readable($file)) {
+        if (Disk::ensurePath($_path = dirname($file)) && file_exists($file) && is_readable($file)) {
             return static::decode(file_get_contents($file), $asArray, $depth, $options);
         }
 
-        throw new \InvalidArgumentException('The file "' . $file . '" does not exist or cannot be read.');
+        throw new \InvalidArgumentException('"' . $file . '" cannot be read.');
     }
 
+    /**
+     * @param string $file Absolute path to our file
+     *
+     * @return bool|int
+     */
+    protected static function backupExistingFile($file)
+    {
+        static $_template = '{file}.{date}.save';
+
+        if (!static::$makeBackups || !file_exists($file)) {
+            return true;
+        }
+
+        if (!Disk::ensurePath($_path = dirname($file))) {
+            throw new \RuntimeException('Unable to create file "' . $file . '"');
+        }
+
+        return file_put_contents(str_replace(['{file}', '{date}'], [basename($file), date('YmdHiS')], $_template),
+            file_get_contents($file));
+    }
+
+    /**
+     * @return boolean
+     */
+    public static function getMakeBackups()
+    {
+        return static::$makeBackups;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFilePath()
+    {
+        return $this->filePath;
+    }
 }
