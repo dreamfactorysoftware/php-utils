@@ -46,8 +46,7 @@ abstract class FactoryEnum
         if (true === $overwrite || !isset(static::$_constants[$_key])) {
             $_mirror = new \ReflectionClass($class ?: \get_called_class());
 
-            static::$_constants[$_key] = array_merge($seedConstants,
-                $_mirror->getConstants());
+            static::$_constants[$_key] = array_merge($seedConstants, $_mirror->getConstants());
 
             unset($_mirror);
         }
@@ -110,6 +109,20 @@ abstract class FactoryEnum
         }
 
         return $_temp;
+    }
+
+    /**
+     * Returns an array of defined constants
+     *
+     * @param bool $flipped
+     *
+     * @return array
+     */
+    public static function all($flipped = false)
+    {
+        $_all = static::introspect();
+
+        return $flipped ? array_flip($_all) : $_all;
     }
 
     /**
