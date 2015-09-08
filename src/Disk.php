@@ -2,7 +2,6 @@
 
 use DreamFactory\Library\Utility\Enums\GlobFlags;
 use DreamFactory\Library\Utility\Exceptions\FileSystemException;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Down and dirty file utility class with a sprinkle of awesomeness
@@ -58,26 +57,7 @@ class Disk
      */
     public static function segment($segment = null, $leading = false, $separator = DIRECTORY_SEPARATOR)
     {
-        $_segments = [];
-
-        if (!empty($segment)) {
-            empty($separator) && $separator = DIRECTORY_SEPARATOR;
-
-            foreach (!is_array($segment) ? [$segment] : $segment as $_portion) {
-                //  Remove all spaces & slashes from front and back
-                $_portion = trim($_portion, $separator . ' ');
-
-                if (!empty($_portion) && $separator != $_portion) {
-                    $_segments[] = $_portion;
-                }
-            }
-        }
-
-        //  Ensure leading slash if wanted
-        $_result = ($leading ? $separator : null) . trim(implode($separator, $_segments), $separator);
-
-        //  Return the string or null if empty
-        return (empty($_result) || $separator == $_result) ? null : $_result;
+        return Scalar::concat($segment, $leading, $separator);
     }
 
     /**
@@ -198,14 +178,12 @@ class Disk
      *
      * @return bool FALSE if the directory does not exist nor can be created
      */
-    public static function ensurePath($path, $mode = 0777, $recursive = false)
+    public static function ensurePath($path, $mode = 0777, $recursive = true)
     {
         try {
             if (!is_dir($path) && !@mkdir($path, $mode, $recursive)) {
                 throw new FileSystemException('mkdir() failed');
             }
-
-            @chmod($path, 02777 & ~umask());
         } catch (\Exception $_ex) {
             //  can't write or make directory?
             /** @noinspection PhpUndefinedMethodInspection */
