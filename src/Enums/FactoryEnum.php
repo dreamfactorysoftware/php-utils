@@ -137,7 +137,7 @@ abstract class FactoryEnum
      * @param mixed $value
      * @param bool  $returnConstant
      *
-     * @return bool
+     * @return bool|mixed
      */
     public static function contains($value, $returnConstant = false)
     {
@@ -175,7 +175,7 @@ abstract class FactoryEnum
      * @param bool   $returnValue If true, returns the value of the constant if found, but throws an exception if not
      *
      * @throws \InvalidArgumentException
-     * @return bool
+     * @return bool|mixed
      */
     public static function defines($constant, $returnValue = false)
     {
@@ -184,8 +184,9 @@ abstract class FactoryEnum
         if (false === ($_has = array_key_exists(strtoupper($constant), $_constants))) {
             if (false !== ($_has = array_key_exists($constant, $_constants))) {
                 $_has = true;
-                $constant = strtoupper($constant);
             }
+        } else {
+            $constant = strtoupper($constant);
         }
 
         if (!$_has && $returnValue) {
@@ -267,5 +268,58 @@ abstract class FactoryEnum
         }
 
         return $_list;
+    }
+
+    /**
+     * Given a CONSTANT, return the associated value
+     *
+     * @param string $constant
+     *
+     * @return mixed
+     */
+    public static function toValue($constant)
+    {
+        if (!is_string($constant) || !static::defines($constant)) {
+            return $constant;
+        }
+
+        return static::defines($constant, true);
+    }
+
+    /**
+     * Given a VALUE, return the associated CONSTANT
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public static function toConstant($value)
+    {
+        if (!is_numeric($value) || !static::contains($value)) {
+            return $value;
+        }
+
+        return static::contains($value, true);
+    }
+
+    /**
+     * Given a CONSTANT or VALUE, return the VALUE
+     *
+     * @param string|int $item
+     *
+     * @return mixed
+     */
+    public static function resolve($item)
+    {
+        try {
+            return static::defines($item, true);
+        } catch (\InvalidArgumentException $_ex) {
+            //  It's not a constant. If it's a value, return it
+            if (static::contains($item)) {
+                return static::contains($item, true);
+            }
+
+            throw $_ex;
+        }
     }
 }
