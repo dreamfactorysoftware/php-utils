@@ -30,6 +30,10 @@ class Disk
     {
         $_path = static::segment($parts, true);
 
+        if ($_path && DIRECTORY_SEPARATOR != $_path[0]) {
+            logger('Build path without leading slash: ' . $_path);
+        }
+
         if (empty($_path)) {
             if ($create) {
                 throw new FileSystemException('Path "' . $_path . '" cannot be created.');
