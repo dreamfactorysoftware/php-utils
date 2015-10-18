@@ -1,6 +1,6 @@
 <?php namespace DreamFactory\Library\Utility\Providers;
 
-use DreamFactory\Enterprise\Common\Services\InspectionService;
+use DreamFactory\Library\Utility\Services\InspectionService;
 use Illuminate\Support\ServiceProvider;
 
 class InspectionServiceProvider extends ServiceProvider
@@ -19,10 +19,13 @@ class InspectionServiceProvider extends ServiceProvider
     /** @inheritdoc */
     public function register()
     {
-        //  Register the manager
-        $this->app->singleton(static::IOC_NAME,
-            function ($app) {
-                return new InspectionService($app);
-            });
+        //  Register the service
+        $this->app->singleton(
+            static::IOC_NAME,
+            function ( $app )
+            {
+                return new InspectionService( $app );
+            }
+        );
     }
 }
