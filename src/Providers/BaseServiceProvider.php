@@ -97,7 +97,7 @@ abstract class BaseServiceProvider extends ServiceProvider
      *
      * @return mixed
      */
-    public function service()
+    public static function service()
     {
         return app(static::IOC_NAME);
     }
