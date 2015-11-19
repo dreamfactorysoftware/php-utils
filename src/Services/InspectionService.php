@@ -1,5 +1,7 @@
 <?php namespace DreamFactory\Library\Utility\Services;
 
+use DreamFactory\Library\Utility\Enums\DeploymentLocations;
+
 class InspectionService
 {
     //******************************************************************************
@@ -23,39 +25,34 @@ class InspectionService
      *
      * @return array
      */
-    public function getInstalledPackages( $filter = null, $refresh = false )
+    public function getInstalledPackages($filter = null, $refresh = false)
     {
-        if ( !empty( $installed ) && !$refresh )
-        {
+        if (!empty($installed) && !$refresh) {
             return $this->installed;
         }
 
         $_list = null;
         $filter && $filter = '|grep "' . $filter . '"';
 
-        switch ( $this->getOperatingSystem() )
-        {
+        switch ($this->getOperatingSystem()) {
             case 'redhat':
-                $_list = trim( `rpm -qa --queryformat "%{NAME}\n" {$filter}` );
+                $_list = trim(`rpm -qa --queryformat "%{NAME}\n" {$filter}`);
                 break;
 
             case 'debian':
-                $_list = trim( `dpkg --get-selections|grep -v 'deinstall' {$filter}` );
+                $_list = trim(`dpkg --get-selections|grep -v 'deinstall' {$filter}`);
                 break;
 
             default:
-                throw new \RuntimeException( 'This operating system is not supported.' );
+                throw new \RuntimeException('This operating system is not supported.');
         }
 
         $_packages = [];
 
-        if ( !empty( $_list ) )
-        {
-            foreach ( explode( PHP_EOL, $_list ) as $_package )
-            {
-                if ( false !== strpos( trim( $_package ), 'install' ) )
-                {
-                    $_package = trim( str_replace( 'install', null, $_package ) );
+        if (!empty($_list)) {
+            foreach (explode(PHP_EOL, $_list) as $_package) {
+                if (false !== strpos(trim($_package), 'install')) {
+                    $_package = trim(str_replace('install', null, $_package));
                 }
 
                 $_packages[] = $_package;
@@ -66,18 +63,33 @@ class InspectionService
     }
 
     /**
+     * Determines the deployment location, if possible
+     */
+    public function detectDeploymentLocation()
+    {
+        if (true === env('DF_MANAGED', false)) {
+            return DeploymentLocations::DFE;
+        }
+
+        if (!empty(env('VCAP_SERVICES'))) {
+            return DeploymentLocations::BLUEMIX;
+        }
+
+        //  We default to local
+        return DeploymentLocations::LOCAL;
+    }
+
+    /**
      * @param string $name The package name
      *
      * @return bool True if it is installed
      */
-    public function hasPackage( $name )
+    public function hasPackage($name)
     {
         $_packages = $this->getInstalledPackages();
 
-        foreach ( $_packages as $_package )
-        {
-            if ( false !== stripos( $_package, $name ) )
-            {
+        foreach ($_packages as $_package) {
+            if (false !== stripos($_package, $name)) {
                 return true;
             }
         }
@@ -92,20 +104,17 @@ class InspectionService
      */
     protected function getOperatingSystem()
     {
-        $_uname = strtolower( php_uname( 's' ) );
+        $_uname = strtolower(php_uname('s'));
 
-        if ( 'linux' != $_uname && 'darwin' != $_uname )
-        {
+        if ('linux' != $_uname && 'darwin' != $_uname) {
             return $_uname;
         }
 
-        if ( `which apt-get` )
-        {
+        if (`which apt-get`) {
             return 'debian';
         }
 
-        if ( `which yum` )
-        {
+        if (`which yum`) {
             return 'redhat';
         }
 
