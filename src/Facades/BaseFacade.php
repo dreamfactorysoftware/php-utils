@@ -20,6 +20,6 @@ class BaseFacade extends Facade
     {
         $_app = $app ?: app();
 
-        return $_app->make(static::getFacadeRoot());
+        return $_app->make(static::getFacadeAccessor());
     }
 }
