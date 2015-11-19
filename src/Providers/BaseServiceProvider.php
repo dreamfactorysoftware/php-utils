@@ -1,9 +1,10 @@
 <?php namespace DreamFactory\Library\Utility\Providers;
 
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * A base class for service providers
+ * A base class for laravel 5.1+ service providers
  */
 abstract class BaseServiceProvider extends ServiceProvider
 {
@@ -62,7 +63,10 @@ abstract class BaseServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return [static::IOC_NAME];
+        return
+            static::IOC_NAME
+                ? array_merge(parent::provides(), [static::IOC_NAME,])
+                : parent::provides();
     }
 
     /**
@@ -75,13 +79,13 @@ abstract class BaseServiceProvider extends ServiceProvider
      */
     public static function getServiceConfig($name = null, $default = [])
     {
-        if (null === ($_name = $name)) {
+        if (empty($_key = $name)) {
             $_mirror = new \ReflectionClass(get_called_class());
-            $_name = snake_case(str_ireplace('ServiceProvider', null, $_mirror->getShortName()));
+            $_key = snake_case(str_ireplace(['ServiceProvider', 'Provider'], null, $_mirror->getShortName()));
             unset($_mirror);
         }
 
-        return config($_name, $default);
+        return config($_key, $default);
     }
 
     /**
@@ -93,12 +97,14 @@ abstract class BaseServiceProvider extends ServiceProvider
     }
 
     /**
-     * Makes and returns an instance of this provider's service
+     * @param Application|null $app
      *
      * @return mixed
      */
-    public static function service()
+    public static function service(Application $app = null)
     {
-        return app(static::IOC_NAME);
+        $app = $app ?: app();
+
+        return $app->make(static::IOC_NAME);
     }
 }
