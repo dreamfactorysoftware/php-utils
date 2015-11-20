@@ -1,9 +1,8 @@
 <?php namespace DreamFactory\Library\Utility\Providers;
 
 use DreamFactory\Library\Utility\Services\InspectionService;
-use Illuminate\Support\ServiceProvider;
 
-class InspectionServiceProvider extends ServiceProvider
+class InspectionServiceProvider extends BaseServiceProvider
 {
     //******************************************************************************
     //* Constants
@@ -22,9 +21,8 @@ class InspectionServiceProvider extends ServiceProvider
         //  Register the service
         $this->app->singleton(
             static::IOC_NAME,
-            function ( $app )
-            {
-                return new InspectionService( $app );
+            function ($app){
+                return new InspectionService($app);
             }
         );
     }
