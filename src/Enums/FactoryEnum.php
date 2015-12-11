@@ -112,17 +112,17 @@ abstract class FactoryEnum
     }
 
     /**
-     * Returns an array of defined constants
+     * Alias of static::getDefinedConstants()
      *
-     * @param bool $flipped
+     * @param bool   $flipped  If true, the array is flipped before return ( value => CONSTANT_NAME )
+     * @param string $class    Used internally to cache constants
+     * @param bool   $listData If true, the constant names themselves are cleaned up for display purposes.
      *
      * @return array
      */
-    public static function all($flipped = false)
+    public static function all($flipped = false, $class = null, $listData = false)
     {
-        $_all = static::introspect();
-
-        return $flipped ? array_flip($_all) : $_all;
+        return static::getDefinedConstants($flipped, $class, $listData);
     }
 
     /**

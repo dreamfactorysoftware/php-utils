@@ -62,7 +62,6 @@ class Profiler
 
         if (function_exists('xhprof_enable')) {
             static::$_xhprof = true;
-
             /** @noinspection PhpUndefinedConstantInspection */
             xhprof_enable(static::XHPROF_FLAGS_CPU + static::XHPROF_FLAGS_MEMORY);
         }
@@ -96,14 +95,13 @@ class Profiler
                 'run_name' => $_runName = $id . microtime(true),
                 'runs'     => $_runs = new \XHProfRuns_Default(),
                 'run_id'   => $_runId = $_runs->save_run($_data, $_runName),
-                'url'      => '/xhprof/index.php?run=' . $_runId . '&source=' . $_runName,
+                'url'      => 'http://xhprof.local/index.php?run=' . $_runId . '&source=' . $_runName,
             ];
 
-            error_log('~!~ profiler link: ' . static::$_profiles[$id]['xhprof']['url']);
+            \Log::debug('~!~ profiler link: ' . static::$_profiles[$id]['xhprof']['url']);
         }
 
-        return $prettyPrint ? static::elapsedAsString(static::$_profiles[$id]['elapsed'])
-            : static::$_profiles[$id]['elapsed'];
+        return $prettyPrint ? static::elapsedAsString(static::$_profiles[$id]['elapsed']) : static::$_profiles[$id]['elapsed'];
     }
 
     /**

@@ -21,7 +21,8 @@
 	},
 	"autoload":          {
 		"psr-4": {
-			"DreamFactory\\Library\\Utility\\": "src/"
+			"DreamFactory\\Library\\Utility\\":      "src/",
+			"DreamFactory\\Library\\Utility\\Tests\\": "tests/"
 		}
 	},
 	"extra":             {
