@@ -4,6 +4,7 @@ use DreamFactory\Enterprise\Common\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Enums\DataShapes;
 use DreamFactory\Library\Utility\Shapers\JsonShape;
 use DreamFactory\Library\Utility\Shapers\MediaWikiTableShape;
+use DreamFactory\Library\Utility\Shapers\XmlShape;
 
 /**
  * DataShaper
@@ -118,7 +119,7 @@ class DataShaper
                 return JsonShape::transform($this->data, $options);
 
             case DataShapes::XML:
-                throw new NotImplementedException('XML conversion is not implemented.');
+                return XmlShape::transform($this->data, $options);
         }
 
         throw new NotImplementedException('The requested shape "' . $this->shape . '" is not valid.');
