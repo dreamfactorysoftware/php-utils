@@ -21,4 +21,20 @@ class FactoryEnumTest extends \PHPUnit_Framework_TestCase
             $this->assertTrue(TestEnum::defines($_constant));
         }
     }
+
+    /**
+     * @covers FactoryEnum::toConstant()
+     * @covers FactoryEnum::toValue()
+     * @covers FactoryEnum::resolve()
+     */
+    public function testResolvers()
+    {
+        $this->assertEquals('BOOLEAN_TRUE', TestEnum::toConstant('true'));
+        $this->assertEquals('INTEGER', TestEnum::toConstant(12345));
+        $this->assertEquals('STRING', TestEnum::toConstant('i am a string'));
+
+        $this->assertEquals('BOOLEAN_TRUE', TestEnum::resolve('true'));
+        $this->assertEquals('INTEGER', TestEnum::resolve(12345));
+        $this->assertEquals('STRING', TestEnum::resolve('i am a string'));
+    }
 }
