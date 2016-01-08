@@ -8,10 +8,8 @@ use DreamFactory\Library\Utility\Enums\FactoryEnum;
  */
 class TestEnum extends FactoryEnum
 {
-    const DOUBLE        = 1.2345;
     const INTEGER       = 12345;
-    const STRING        = '12345';
-    const BOOLEAN_TRUE  = true;
-    const BOOLEAN_FALSE = false;
-    const NULL          = null;
+    const STRING        = 'i am a string';
+    const BOOLEAN_TRUE  = 'true';
+    const BOOLEAN_FALSE = 'false';
 }

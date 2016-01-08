@@ -33,15 +33,16 @@ abstract class FactoryEnum
     }
 
     /**
-     * @param string $class
-     * @param array  $seedConstants Seeds the cache with these optional KVPs
-     * @param bool   $overwrite
+     * @param string      $class
+     * @param array       $seedConstants Seeds the cache with these optional KVPs
+     * @param bool        $overwrite
+     * @param string|null $tag           Additional cache tag
      *
      * @return string
      */
-    public static function introspect($class = null, array $seedConstants = [], $overwrite = true)
+    public static function introspect($class = null, array $seedConstants = [], $overwrite = true, $tag = null)
     {
-        $_key = static::_cacheKey($class);
+        $_key = static::_cacheKey($class) . ($tag ? '.' . $tag : null);
 
         if (true === $overwrite || !isset(static::$_constants[$_key])) {
             $_mirror = new \ReflectionClass($class ?: \get_called_class());
@@ -93,8 +94,7 @@ abstract class FactoryEnum
      */
     public static function getDefinedConstants($flipped = false, $class = null, $listData = false)
     {
-        $_key = static::introspect($class, [], false);
-
+        $_key = static::introspect($class, [], false, $flipped ? 'flipped' : null);
         $_constants = false === $flipped ? static::$_constants[$_key] : array_flip(static::$_constants[$_key]);
 
         if (false === $listData) {
@@ -126,6 +126,63 @@ abstract class FactoryEnum
     }
 
     /**
+     * Given a VALUE, return the associated CONSTANT
+     *
+     * @param string $value
+     *
+     * @return string
+     */
+    public static function toConstant($value)
+    {
+        if (false !== ($_index = array_search($value, static::getDefinedConstants()))) {
+            return $_index;
+        }
+
+        throw new \InvalidArgumentException('The value "' . $value . '" has no associated constant.');
+    }
+
+    /**
+     * Given a CONSTANT, return the associated VALUE
+     *
+     * @param mixed $constant
+     *
+     * @return string
+     */
+    public static function toValue($constant)
+    {
+        if (false !== ($_index = array_search($constant, static::getDefinedConstants(true)))) {
+            return $_index;
+        }
+
+        throw new \InvalidArgumentException('The constant "' . $constant . '" has no associated value.');
+    }
+
+    /**
+     * Given a CONSTANT or VALUE, return the VALUE
+     *
+     * @param string|int $item
+     *
+     * @return mixed
+     */
+    public static function resolve($item)
+    {
+        try {
+            return static::toConstant($item);
+        } catch (\Exception $_ex) {
+            //  Ignored...
+        }
+
+        try {
+            return static::toValue($item);
+        } catch (\Exception $_ex) {
+            //  Ignored...
+        }
+
+        //  Sorry charlie...
+        throw new \InvalidArgumentException('The item "' . $item . '" can not be resolved.');
+    }
+
+    /**
      * Returns constant name or true/false if class contains a specific constant value.
      *
      * Use for validity checks:
@@ -141,11 +198,13 @@ abstract class FactoryEnum
      */
     public static function contains($value, $returnConstant = false)
     {
-        if (in_array($value, static::getDefinedConstants())) {
-            return $returnConstant ? static::nameOf($value) : true;
-        }
+        try {
+            $_key = static::toConstant($value);
 
-        return false;
+            return $returnConstant ? $_key : true;
+        } catch (\Exception $_ex) {
+            return false;
+        }
     }
 
     /**
@@ -179,21 +238,17 @@ abstract class FactoryEnum
      */
     public static function defines($constant, $returnValue = false)
     {
-        $_constants = static::getDefinedConstants();
+        try {
+            $_value = static::toValue($constant);
 
-        if (false === ($_has = array_key_exists(strtoupper($constant), $_constants))) {
-            if (false !== ($_has = array_key_exists($constant, $_constants))) {
-                $_has = true;
+            return $returnValue ? $_value : true;
+        } catch (\InvalidArgumentException $_ex) {
+            if ($returnValue) {
+                throw $_ex;
             }
-        } else {
-            $constant = strtoupper($constant);
         }
 
-        if (!$_has && $returnValue) {
-            throw new \InvalidArgumentException('The constant "' . $constant . '" is not defined.');
-        }
-
-        return !$returnValue ? $_has : $_constants[$constant];
+        return false;
     }
 
     /**
@@ -210,27 +265,13 @@ abstract class FactoryEnum
      */
     public static function nameOf($constant, $flipped = true, $pretty = true)
     {
-        $_result = null;
-
-        foreach (static::getDefinedConstants() as $_name => $_value) {
-            if ($flipped) {
-                if ($_name == $constant) {
-                    $_result = $_value;
-                    break;
-                }
-            } else {
-                if ($_value == $constant) {
-                    $_result = $_name;
-                    break;
-                }
-            }
-        }
-
-        if (!$_result) {
+        try {
+            $_name = $flipped ? static::toValue($constant) : static::toConstant($constant);
+        } catch (\InvalidArgumentException $_ex) {
             throw new \InvalidArgumentException('A constant with the value of "' . $constant . '" does not exist.');
         }
 
-        return !$flipped && $pretty ? Inflector::display(Inflector::neutralize($_result)) : $_result;
+        return !$flipped && $pretty ? Inflector::display(Inflector::neutralize($_name)) : $_name;
     }
 
     /**
@@ -268,58 +309,5 @@ abstract class FactoryEnum
         }
 
         return $_list;
-    }
-
-    /**
-     * Given a CONSTANT, return the associated value
-     *
-     * @param string $constant
-     *
-     * @return mixed
-     */
-    public static function toValue($constant)
-    {
-        if (!is_string($constant) || !static::defines($constant)) {
-            return $constant;
-        }
-
-        return static::defines($constant, true);
-    }
-
-    /**
-     * Given a VALUE, return the associated CONSTANT
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    public static function toConstant($value)
-    {
-        if (!is_numeric($value) || !static::contains($value)) {
-            return $value;
-        }
-
-        return static::contains($value, true);
-    }
-
-    /**
-     * Given a CONSTANT or VALUE, return the VALUE
-     *
-     * @param string|int $item
-     *
-     * @return mixed
-     */
-    public static function resolve($item)
-    {
-        try {
-            return static::defines($item, true);
-        } catch (\InvalidArgumentException $_ex) {
-            //  It's not a constant. If it's a value, return it
-            if (static::contains($item)) {
-                return static::contains($item, true);
-            }
-
-            throw $_ex;
-        }
     }
 }
