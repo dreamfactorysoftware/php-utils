@@ -9,7 +9,7 @@ class XmlShape implements ShapesData
     //******************************************************************************
 
     /**
-     * @type \DOMDocument The produced XML
+     * @type \SimpleXMLElement The produced XML
      */
     protected $document;
     /**
@@ -57,13 +57,10 @@ class XmlShape implements ShapesData
      */
     public static function make($root, array $array = [], $options = [])
     {
-        $_xml =
-            new static(array_get($options, 'version', '1.0'),
-                array_get($options, 'encoding', 'UTF-8'),
-                array_get($options, 'root'),
-                array_get($options, 'pretty', true));
-
-        return $_xml->addChildArray($root, $array);
+        return new static(array_get($options, 'version', '1.0'),
+            array_get($options, 'encoding', 'UTF-8'),
+            array_get($options, 'root'),
+            array_get($options, 'pretty', true));
     }
 
     /**
@@ -76,59 +73,33 @@ class XmlShape implements ShapesData
      */
     public static function transform(array $source, $options = [])
     {
-        return static::make(null, $source, $options)->document->saveXML();
-    }
+        $_xml = static::make($_root = array_get($options, 'root', 'root'), $source, $options);
+        $_xml->appendArray($source, $_xml->document, array_get($options, 'item-type', 'item'));
 
-    /**
-     * @param array         $array
-     * @param \DOMNode|null $node
-     */
-    protected function appendArray(array $array, &$node = null)
-    {
-        $node = $node ?: $this->document;
-
-        foreach ($array as $_key => $_value) {
-            $_key = is_numeric($_key) ? 'item' . $_key : $_key;
-
-            if (is_array($_value)) {
-                $_node = $node->addChild($_key);
-                $this->appendArray($_value, $_node);
-            } else {
-                $node->addChild($_key, $_value);
-            }
+        if (array_get($options, 'ugly', false)) {
+            return $_xml->document->asXml();
         }
+
+        //  Pretty print
+        $_dom = \dom_import_simplexml($_xml->document)->ownerDocument;
+        $_dom->formatOutput = true;
+
+        return $_dom->saveXML();
     }
 
     /**
-     *  Converts and appends a node to the document
-     *
-     * @param string $root
-     * @param array  $array
-     *
-     * @return $this
+     * @param array                                 $array
+     * @param \SimpleXMLElement[]|\SimpleXMLElement $node
+     * @param string                                $type
      */
-    public function addChildArray($root, $array = [])
+    protected function appendArray(array $array, &$node, $type = 'item')
     {
-        $_node = $this->document->addChild($root);
-        $this->appendArray($array, $_node);
-
-        return $this;
-    }
-
-    /**
-     * @param \SimpleXMLElement $node
-     * @param array             $array
-     */
-    public static function fromArray(&$node, array $array)
-    {
-        $node = $node ?: new \DOMNode();
-
         foreach ($array as $_key => $_value) {
-            is_numeric($_key) && $_key = 'item' . $_key;
+            $_key = is_numeric($_key) ? $type . '_' . $_key : $_key;
 
             if (is_array($_value)) {
                 $_subnode = $node->addChild($_key);
-                static::fromArray($_subnode, $_value);
+                $this->appendArray($_value, $_subnode);
             } else {
                 $node->addChild($_key, $_value);
             }
