@@ -1,33 +1,42 @@
 {
-	"name":              "dreamfactory/php-utils",
-	"description":       "A library of helper classes for PHP",
-	"homepage":          "https://www.dreamfactory.com/",
-	"keywords":          ["utility", "console", "laravel", "symfony", "dreamfactory"],
-	"license":           ["Apache-2.0"],
-	"authors":           [
-		{
-			"name":  "Jerry Ablan",
-			"email": "jerryablan@dreamfactory.com"
-		}
-	],
-	"minimum-stability": "dev",
-	"require":           {
-		"symfony/dependency-injection": "*",
-		"symfony/http-foundation":      "*"
-	},
-	"require-dev":       {
-		"laravel/framework": "5.1.*",
-		"phpunit/phpunit":   "@stable"
-	},
-	"autoload":          {
-		"psr-4": {
-			"DreamFactory\\Library\\Utility\\":      "src/",
-			"DreamFactory\\Library\\Utility\\Tests\\": "tests/"
-		}
-	},
-	"extra":             {
-		"branch-alias": {
-			"dev-develop": "1.1.x-dev"
-		}
-	}
+    "name":              "dreamfactory/php-utils",
+    "description":       "A library of helper classes for PHP",
+    "homepage":          "https://www.dreamfactory.com/",
+    "keywords":          [
+        "utility",
+        "console",
+        "laravel",
+        "symfony",
+        "dreamfactory"
+    ],
+    "license":           [
+        "Apache-2.0"
+    ],
+    "authors":           [
+        {
+            "name":  "Jerry Ablan",
+            "email": "jerryablan@dreamfactory.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable":     true,
+    "require":           {
+        "symfony/dependency-injection": "*",
+        "symfony/http-foundation":      "*"
+    },
+    "require-dev":       {
+        "laravel/framework": "5.1.*",
+        "phpunit/phpunit":   "@stable"
+    },
+    "autoload":          {
+        "psr-4": {
+            "DreamFactory\\Library\\Utility\\":        "src/",
+            "DreamFactory\\Library\\Utility\\Tests\\": "tests/"
+        }
+    },
+    "extra":             {
+        "branch-alias": {
+            "dev-develop": "1.1.x-dev"
+        }
+    }
 }

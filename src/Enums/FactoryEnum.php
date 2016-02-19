@@ -288,24 +288,45 @@ abstract class FactoryEnum
     /**
      * Returns a list of the constants in a comma-separated display manner
      *
-     * @param string|null $quote An optional quote to enrobe the value (' or " only)
-     * @param bool        $tags  If true, $tags will be used instead of the constants themselves
+     * @param string|null $quote   An optional quote to enrobe the value (' or " only)
+     * @param bool        $tags    If true, $tags will be used instead of the constants themselves
+     * @param bool        $numbers If true, the numeric value of the constant will be printed
+     * @param bool        $lastOr  If true, the word "or" will be placed before the last item in the list
      *
      * @return string
      */
-    public static function prettyList($quote = null, $tags = false)
+    public static function prettyList($quote = null, $tags = false, $numbers = false, $lastOr = true)
     {
         $quote != '\'' && $quote != '"' && $quote = null;
         $_values = array_values($tags ? static::$tags : static::getDefinedConstants(true));
 
+        //  Remove unwanted items...
+        for ($_i = 0, $_max = count($_values); $_i < $_max; $_i++) {
+            if ('_' == $_values[$_i][0]) {
+                array_forget($_values, $_i);
+                continue;
+            }
+        }
+
+        //  Find the last item for "or" placement
+        end($_values);
+        $_last = key($_values);
         $_list = null;
 
         for ($_i = 0, $_max = count($_values); $_i < $_max; $_i++) {
-            //  Skip constants starting with an underscore
-            if ('_' != $_values[$_i][0]) {
-                $_i != 0 && $_list .= ', ';
-                $_list .= $quote . strtolower($_values[$_i]) . $quote;
+            //  No comma on first guy...
+            $_i != 0 && $_list .= ', ';
+            //  Add "or" on the last
+            $lastOr && ($_i == $_last) && $_list .= 'or ';
+
+            //  Format the item
+            if ($numbers) {
+                $_item = $quote . static::toValue($_values[$_i]) . $quote . ' (' . strtolower($_values[$_i]) . ')';
+            } else {
+                $_item = $quote . strtolower($_values[$_i]) . $quote;
             }
+
+            $_list .= $_item;
         }
 
         return $_list;
