@@ -19,7 +19,7 @@
         }
     ],
     "minimum-stability": "dev",
-    "prefer-stable":     true,
+    "prefer-stable":     false,
     "require":           {
         "symfony/dependency-injection": "*",
         "symfony/http-foundation":      "*"
