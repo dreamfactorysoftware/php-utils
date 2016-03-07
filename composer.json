@@ -25,7 +25,7 @@
         "symfony/http-foundation":      "*"
     },
     "require-dev":       {
-        "laravel/framework": "5.1.*",
+        "laravel/framework": "~5.1",
         "phpunit/phpunit":   "@stable"
     },
     "autoload":          {
