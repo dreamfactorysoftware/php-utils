@@ -20,6 +20,7 @@ class BaseFacade extends Facade
     {
         $_app = $app ?: app();
 
+        /** @noinspection PhpUndefinedMethodInspection */
         return $_app->make(static::getFacadeAccessor());
     }
 }
